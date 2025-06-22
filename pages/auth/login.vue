@@ -7,7 +7,7 @@
     </div>
 
     <div class="bg-[#fff] rounded-lg p-4 w-full max-w-[600px] mt-4">
-      <form class="flex flex-col gap-4">
+      <form class="flex flex-col gap-4" @submit.prevent>
         <SharedTInput v-model="infos.email" placeholder="E-mail" type="email" />
 
         <SharedTInput
