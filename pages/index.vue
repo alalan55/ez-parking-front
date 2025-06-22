@@ -1,8 +1,4 @@
 <template>
-<div>
-
-  hello
-</div>
+  <div>hello</div>
 </template>
-<script setup>
-</script>
+<script setup></script>
