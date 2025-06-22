@@ -1,6 +1,6 @@
 <template>
   <div
-    class="wrapper min-h-[calc(100dvh - 70px)] flex flex-col items-center sm:justify-start md:justify-center bg-[#fafafa] p-4"
+    class="wrapper min-h-[calc(100dvh - 70px)] flex flex-col items-center sm:justify-start md:justify-center bg-[#fafafa] p-4 h-full"
   >
     <section class="text-center">
       <h1 class="text-2xl font-bold">Criar conta</h1>
@@ -196,9 +196,3 @@ onMounted(() => {
   if (optionsSection.value) autoAnimate(optionsSection.value);
 });
 </script>
-
-<style scoped lang="postcss">
-.wrapper {
-  min-height: calc(100dvh - 70px);
-}
-</style>

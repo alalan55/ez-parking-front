@@ -1,12 +1,12 @@
 <template>
   <div
-    class="wrapper min-h-[calc(100dvh - 70px)] flex flex-col items-center justify-center bg-[ #fafafa]"
+    class="wrapper min-h-[calc(100dvh - 70px)] flex flex-col items-center justify-center bg-[#fafafa] h-full"
   >
     <div class="text-center">
       <h1 class="text-2xl font-bold">Bem-vindo de volta</h1>
     </div>
 
-    <div class="bg-[#fff] rounded-lg p-4 w-full max-w-[600px] mt-4">
+    <div class="rounded-lg p-4 w-full max-w-[600px] mt-4">
       <form class="flex flex-col gap-4" @submit.prevent>
         <SharedTInput v-model="infos.email" placeholder="E-mail" type="email" />
 
@@ -33,9 +33,3 @@ const infos = ref({
   password: "",
 });
 </script>
-
-<style scoped lang="postcss">
-.wrapper {
-  min-height: calc(100dvh - 70px);
-}
-</style>

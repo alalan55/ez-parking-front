@@ -8,3 +8,10 @@
   </div>
 </template>
 <script setup></script>
+
+<style scoped lang="postcss">
+.content {
+  height: calc(100dvh - 70px);
+  overflow: auto;
+}
+</style>
