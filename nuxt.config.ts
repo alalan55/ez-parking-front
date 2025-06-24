@@ -9,6 +9,7 @@ export default defineNuxtConfig({
     "@nuxt/icon",
     "@nuxt/image",
     "@nuxtjs/tailwindcss",
+    "@vueuse/nuxt",
   ],
 
   css: ["@/assets/css/main.css", "@/assets/css/tailwind.css"],
