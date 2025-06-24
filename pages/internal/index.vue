@@ -6,12 +6,14 @@
       <section class="grid sm:grid-cols-1 md:grid-cols-3 gap-4 mt-4">
         <div class="border border-[#e3e3e3] rounded-lg p-4">
           <p class="text-sm">Ocupação</p>
-          <span class="font-bold text-lg">75%</span>
+          <span class="font-bold text-lg">
+            {{ occupancy?.occupiedPercentage || 0 }}%
+          </span>
         </div>
 
         <div class="border border-[#e3e3e3] rounded-lg p-4">
           <p class="text-sm">Espaços disponíveis</p>
-          <span class="font-bold text-lg">25</span>
+          <span class="font-bold text-lg">{{ occupancy?.available || 0 }}</span>
         </div>
 
         <div class="border border-[#e3e3e3] rounded-lg p-4">
@@ -23,7 +25,7 @@
       <section class="mt-8">
         <SharedTTable
           :columns="columnsTable"
-          :rows="logsList"
+          :rows="vacancies"
           :loading="loading"
         >
           <template #cell-vacancy="{ row }"> # {{ row?.id }} </template>
@@ -80,6 +82,16 @@
           </template>
         </SharedTTable>
       </section>
+
+      <button
+        class="rounded-full fixed bottom-4 right-4 md:bottom-14 md:right-14 flex items-center justify-center p-3 bg-[#000] text-white shadow-lg hover:bg-[#2e2e2e] transition-colors duration-200 cursor-pointer"
+      >
+        <Icon
+          name="tabler:plus"
+          size="1.5rem"
+          class="bg-[#fff] text-white rounded-full p-3 shadow-lg transition-colors duration-200"
+        />
+      </button>
     </div>
   </div>
 </template>
@@ -127,18 +139,19 @@ const columnsTable = [
   },
 ];
 
-const logsList = ref([]);
+const vacancies = ref([]);
+const occupancy = ref({});
 
 const getVacanciesLogs = async () => {
   try {
     loading.value = true;
-    // const req = await fetch("http://localhost:8080/parking-log/vacancies/1");
-    const req = await fetch("http://localhost:8080/vacancy/dash/1");
-
+    const req = await fetch(
+      "http://localhost:8080/dash/vacancies-by-organization/1"
+    );
     const res = await req.json();
 
-    logsList.value = res.content;
-
+    vacancies.value = res.content.vacancies;
+    occupancy.value = res.content.occupancy;
     loading.value = false;
   } catch (error) {
     console.error("Error fetching vacancies logs:", error);
