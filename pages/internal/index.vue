@@ -63,13 +63,13 @@
           </template>
 
           <template #cell-vehicle="{ row }">
-            {{ row?.Vehicle?.plate?.toUpperCase() }}
+            {{ row?.vehicle?.plate?.toUpperCase() }}
           </template>
 
           <template #cell-customer="{ row }">
             {{
-              row?.Vehicle?.Clients.length > 0
-                ? row?.Vehicle?.Clients[0]?.name
+              row?.vehicle?.Clients.length > 0
+                ? row?.vehicle?.Clients[0]?.name
                 : "N/A"
             }}
           </template>
@@ -89,7 +89,7 @@
           </template>
 
           <template #cell-actions="{ row }">
-            <div class="flex items-center justify-center">
+            <div v-show="row.status === 1" class="flex items-center justify-center">
               <Icon
                 name="tabler:pencil"
                 size="1.3rem"
@@ -178,7 +178,7 @@ const search = ref("");
 
 const debouncedSearch = useDebounceFn(() => {
   getVacanciesLogs();
-}, 500);
+}, 550);
 
 const getVacanciesLogs = async () => {
   try {
@@ -199,9 +199,9 @@ const getVacanciesLogs = async () => {
 };
 
 const updateVacancy = (row) => {
-  console.log("Update vacancy:", row);
-  // Implement the logic to update the vacancy
-  currentVacancy.value = row;
+  if (row.status === 0) currentVacancy.value = null;
+  else currentVacancy.value = row;
+
   infoDialog.value = true;
 };
 

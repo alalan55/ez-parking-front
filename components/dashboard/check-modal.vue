@@ -1,96 +1,56 @@
 <template>
   <section class="space-y-6">
     <h2 class="text-2xl font-bold mb-4">
-      {{ props.infoProps ? "Check-out" : "Check-in" }}
+      {{ isCheckin ? "Check-in" : "Check-out" }}
     </h2>
 
-    <div class="grid gap-6 md:grid-cols-1">
-      <div class="rounded-xl p-6 flex-1">
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-medium text-[#5c748a] mb-1"
-              >Vaga ID</label
-            >
-            <SharedTInput
-              v-model="information.id"
-              placeholder="Vaga ID"
-              type="text"
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-[#5c748a] mb-1"
-              >Placa do veículo</label
-            >
-            <SharedTInput
-              v-model="information.Vehicle.plate"
-              placeholder="Placa"
-              type="text"
-            />
-          </div>
+    <div class="rounded-xl p-6 flex-1">
+      <div class="grid sm:grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-[#5c748a] mb-1"
+            >Placa do veículo</label
+          >
+          <SharedTInput
+            v-model="information.vehicle.plate"
+            :readonly="!isCheckin"
+            placeholder="Placa"
+            type="text"
+          />
+        </div>
 
-          <div>
-            <label class="block text-xs font-medium text-[#5c748a] mb-1"
-              >Cliente</label
-            >
-            <SharedTInput placeholder="Cliente" type="text" />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-[#5c748a] mb-1"
-              >Status</label
-            >
-            <SharedTInput
-              v-model="information.status"
-              placeholder="Status"
-              type="text"
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-[#5c748a] mb-1"
-              >Hora entrada</label
-            >
-            <SharedTInput placeholder="Hora entrada" type="text" />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-[#5c748a] mb-1"
-              >Hora saída</label
-            >
-            <SharedTInput placeholder="Hora saída" type="text" />
-          </div>
+        <div>
+          <label class="block text-xs font-medium text-[#5c748a] mb-1"
+            >Cliente</label
+          >
+          <SharedTInput placeholder="Cliente" type="text" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-[#5c748a] mb-1"
+            >Hora entrada</label
+          >
+          <SharedTInput
+            v-model="information.entryTime"
+            :readonly="!isCheckin"
+            placeholder="Hora entrada"
+            type="time"
+          />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-[#5c748a] mb-1"
+            >Hora saída</label
+          >
+          <SharedTInput placeholder="Hora saída" type="text" />
         </div>
       </div>
-
-      <!-- <div class="border border-[#e3e3e3] rounded-xl p-6 flex-1">
-        <h3 class="text-lg font-semibold mb-4">Veículo</h3>
-        <div class="grid gap-4">
-          <div>
-            <label class="block text-xs font-medium text-[#5c748a] mb-1"
-              >Placa do veículo</label
-            >
-            <SharedTInput placeholder="Placa do veículo" type="text" />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-[#5c748a] mb-1"
-              >Marca do veículo</label
-            >
-            <SharedTInput placeholder="Marca do veículo" type="text" />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-[#5c748a] mb-1"
-              >Ano do veículo</label
-            >
-            <SharedTInput placeholder="Ano do veículo" type="text" />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-[#5c748a] mb-1"
-              >Donos</label
-            >
-            <SharedTInput placeholder="Donos" type="text" />
-          </div>
-        </div>
-      </div> -->
     </div>
+
     <div class="flex items-center justify-end">
-      <SharedTButton class="max-w-[130px]" type="primary" title="Checkout" />
+      <SharedTButton
+        class="max-w-[130px]"
+        type="primary"
+        :title="isCheckin ? 'Check-in' : 'Check-out'"
+      />
     </div>
   </section>
 </template>
@@ -99,11 +59,26 @@
 const props = defineProps({
   infoProps: {
     type: Object,
-    default: () => ({}),
+    default: null,
   },
 });
 
-const information = ref({ ...props.infoProps });
+const information = ref({ id: "", vehicle: { plate: "" }, status: "" });
+const isCheckin = computed(() => !props.infoProps);
+
+const fillLocalInfo = () => {
+  if (props.infoProps) {
+    information.value = { ...props.infoProps };
+    information.value.entryTime = new Date(
+      props.infoProps.activeVacancyLog.createdAt
+    ).toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+};
+
+fillLocalInfo();
 </script>
 
 <style lang="postcss" scoped>
