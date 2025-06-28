@@ -4,23 +4,41 @@
       <h1 class="text-3xl font-bold">Dashboard</h1>
 
       <section class="grid sm:grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-        <div class="border border-[#e3e3e3] rounded-lg p-4">
+        <div
+          class="border border-[#e3e3e3] rounded-lg p-4 hover:shadow-md cursor-pointer transition-all transform animate-fade-in duration-200"
+        >
           <p class="text-sm">Ocupação</p>
           <span class="font-bold text-lg">
             {{ occupancy?.occupiedPercentage || 0 }}%
           </span>
         </div>
 
-        <div class="border border-[#e3e3e3] rounded-lg p-4">
+        <div
+          class="border border-[#e3e3e3] rounded-lg p-4 hover:shadow-md cursor-pointer transition-all transform animate-fade-in duration-200"
+        >
           <p class="text-sm">Espaços disponíveis</p>
           <span class="font-bold text-lg">{{ occupancy?.available || 0 }}</span>
         </div>
 
-        <div class="border border-[#e3e3e3] rounded-lg p-4">
+        <div
+          class="border border-[#e3e3e3] rounded-lg p-4 hover:shadow-md cursor-pointer transition-all transform animate-fade-in duration-200"
+        >
           <p class="text-sm">Receita total</p>
           <span class="font-bold text-lg">R$ 12,500</span>
         </div>
       </section>
+
+      <div class="mt-8">
+        <div class="flex items-center gap-3 max-w-[395px]">
+          <SharedTInput
+            v-model="search"
+            placeholder="Pesquisar por placa"
+            @input="debouncedSearch"
+          />
+
+          <Icon name="tabler:search" size="1.5rem" class="text-[#5c748a]" />
+        </div>
+      </div>
 
       <section class="mt-8">
         <SharedTTable
@@ -45,7 +63,7 @@
           </template>
 
           <template #cell-vehicle="{ row }">
-            {{ row?.Vehicle?.plate }}
+            {{ row?.Vehicle?.plate?.toUpperCase() }}
           </template>
 
           <template #cell-customer="{ row }">
@@ -83,8 +101,17 @@
         </SharedTTable>
       </section>
 
+      <SharedTModal
+        v-model="infoDialog"
+        :show-close-button="false"
+        width="max-w-4xl"
+      >
+        <DashboardCheckModal :info-props="currentVacancy" />
+      </SharedTModal>
+
       <button
         class="rounded-full fixed bottom-4 right-4 md:bottom-14 md:right-14 flex items-center justify-center p-3 bg-[#000] text-white shadow-lg hover:bg-[#2e2e2e] transition-colors duration-200 cursor-pointer"
+        @click="infoDialog = true"
       >
         <Icon
           name="tabler:plus"
@@ -97,7 +124,12 @@
 </template>
 
 <script setup>
+import { useDebounceFn } from "@vueuse/core";
+
+const http = useApi();
+
 const loading = ref(false);
+const infoDialog = ref(false);
 
 const columnsTable = [
   {
@@ -141,17 +173,24 @@ const columnsTable = [
 
 const vacancies = ref([]);
 const occupancy = ref({});
+const currentVacancy = ref(null);
+const search = ref("");
+
+const debouncedSearch = useDebounceFn(() => {
+  getVacanciesLogs();
+}, 500);
 
 const getVacanciesLogs = async () => {
   try {
     loading.value = true;
-    const req = await fetch(
-      "http://localhost:8080/dash/vacancies-by-organization/1"
-    );
-    const res = await req.json();
 
-    vacancies.value = res.content.vacancies;
-    occupancy.value = res.content.occupancy;
+    const { data } = await http.get("/dash/vacancies-by-organization/1", {
+      params: { plate: search.value },
+    });
+
+    vacancies.value = data.value.content.vacancies;
+    occupancy.value = data.value.content.occupancy;
+
     loading.value = false;
   } catch (error) {
     console.error("Error fetching vacancies logs:", error);
@@ -162,7 +201,18 @@ const getVacanciesLogs = async () => {
 const updateVacancy = (row) => {
   console.log("Update vacancy:", row);
   // Implement the logic to update the vacancy
+  currentVacancy.value = row;
+  infoDialog.value = true;
 };
+
+watch(
+  () => infoDialog.value,
+  (newValue) => {
+    if (!newValue) {
+      currentVacancy.value = null;
+    }
+  }
+);
 
 getVacanciesLogs();
 </script>

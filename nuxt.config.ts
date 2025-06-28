@@ -3,6 +3,12 @@ export default defineNuxtConfig({
   compatibilityDate: "2025-05-15",
   devtools: { enabled: true },
 
+  runtimeConfig: {
+    public: {
+      apiUrl: process.env.NUXT_APP_API_URL || "http://localhost:8080/",
+    },
+  },
+
   modules: [
     "@nuxt/eslint",
     "@nuxt/fonts",

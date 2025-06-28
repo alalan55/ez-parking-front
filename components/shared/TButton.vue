@@ -3,7 +3,7 @@
     class="w-full px-2 py-3 rounded-lg bg-[#000] text-[#fff] hover:bg-[#111] focus:bg-[#111] active:bg-[#222] transition-colors duration-200 flex items-center justify-center gap-2"
     :class="props.class"
   >
-    <slot name="content">
+    <slot>
       <span class="font-semibold">{{ props.title }}</span>
     </slot>
 
