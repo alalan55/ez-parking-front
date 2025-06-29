@@ -1,38 +1,14 @@
 <template>
-  <div class="h-full p-4 overflow-y-auto">
+  <div class="h-full p-4">
     <div class="content max-w-[1100px] mx-auto mt-10">
-      <h1 class="text-3xl font-bold">Dashboard</h1>
+      <h1 class="text-3xl font-bold">Clientes</h1>
 
-      <section class="grid sm:grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-        <div
-          class="border border-[#e3e3e3] rounded-lg p-4 hover:shadow-md cursor-pointer transition-all transform animate-fade-in duration-200"
-        >
-          <p class="text-sm">Ocupação</p>
-          <span class="font-bold text-lg">
-            {{ occupancy?.occupiedPercentage || 0 }}%
-          </span>
-        </div>
-
-        <div
-          class="border border-[#e3e3e3] rounded-lg p-4 hover:shadow-md cursor-pointer transition-all transform animate-fade-in duration-200"
-        >
-          <p class="text-sm">Espaços disponíveis</p>
-          <span class="font-bold text-lg">{{ occupancy?.available || 0 }}</span>
-        </div>
-
-        <div
-          class="border border-[#e3e3e3] rounded-lg p-4 hover:shadow-md cursor-pointer transition-all transform animate-fade-in duration-200"
-        >
-          <p class="text-sm">Receita total</p>
-          <span class="font-bold text-lg">R$ 12,500</span>
-        </div>
-      </section>
-
+   
       <div class="mt-8">
-        <div class="flex items-center gap-3 max-w-[395px]">
+        <div class="flex items-center gap-3">
           <SharedTInput
             v-model="search"
-            placeholder="Pesquisar por placa"
+            placeholder="Buscar clientes"
             @input="debouncedSearch"
           />
 
@@ -89,10 +65,7 @@
           </template>
 
           <template #cell-actions="{ row }">
-            <div
-              v-show="row.status === 1"
-              class="flex items-center justify-center"
-            >
+            <div v-show="row.status === 1" class="flex items-center justify-center">
               <Icon
                 name="tabler:pencil"
                 size="1.3rem"

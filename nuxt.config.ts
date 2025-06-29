@@ -16,6 +16,7 @@ export default defineNuxtConfig({
     "@nuxt/image",
     "@nuxtjs/tailwindcss",
     "@vueuse/nuxt",
+    "nuxt-toast"
   ],
 
   css: ["@/assets/css/main.css", "@/assets/css/tailwind.css"],

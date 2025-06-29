@@ -37,39 +37,21 @@
           :name="menuVisible ? 'tabler:x' : 'tabler:menu-deep'"
           size="1.5rem"
           class="menu-hamburguer text-[#000] hover:text-[#4f4f4f] transition-colors duration-200 cursor-pointer"
-          @click="menuVisible = !menuVisible"
+          @click="handleClickmenu"
         />
         <div
           ref="menu"
           class="menu flex items-center gap-6 shadow-2xl md:shadow-none"
         >
-          <NuxtLink
-            to="/internal"
-            class="link text-[#000] hover:text-[#4f4f4f] transition-colors duration-200 font-medium hover:font-semibold"
-          >
-            Home
-          </NuxtLink>
-
-          <NuxtLink
-            to="/internal"
-            class="link text-[#000] hover:text-[#4f4f4f] transition-colors duration-200 font-medium hover:font-semibold"
-          >
-            Métricas
-          </NuxtLink>
-
-          <NuxtLink
-            to="/internal"
-            class="link text-[#000] hover:text-[#4f4f4f] transition-colors duration-200 font-medium hover:font-semibold"
-          >
-            Clientes
-          </NuxtLink>
-
-          <NuxtLink
-            to="/internal"
-            class="link text-[#000] hover:text-[#4f4f4f] transition-colors duration-200 font-medium hover:font-semibold"
-          >
-            Organização
-          </NuxtLink>
+          <template v-for="link in links" :key="link.name">
+            <NuxtLink
+              :to="link.path"
+              class="link text-[#000] hover:text-[#4f4f4f] transition-colors duration-200 font-medium hover:font-semibold"
+              @click="handleClickmenu"
+            >
+              {{ link.name }}
+            </NuxtLink>
+          </template>
 
           <div class="flex items-center gap-4">
             <span
@@ -94,6 +76,17 @@
 <script setup>
 const menuVisible = ref(false);
 const menu = ref(null);
+
+const links = [
+  { name: "Home", path: "/internal" },
+  { name: "Métricas", path: "/internal" },
+  { name: "Clientes", path: "/internal/clients" },
+  { name: "Organização", path: "/internal/organization" },
+];
+
+const handleClickmenu = () => {
+  menuVisible.value = !menuVisible.value;
+};
 
 watch(
   () => menuVisible.value,
