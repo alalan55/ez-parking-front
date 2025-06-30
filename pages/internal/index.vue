@@ -3,6 +3,10 @@
     <div class="content max-w-[1100px] mx-auto mt-10">
       <h1 class="text-3xl font-bold">Dashboard</h1>
 
+      <span class="text-[#4A739C]">
+        Visualize as informações gerais do estacionamento.
+      </span>
+
       <section class="grid sm:grid-cols-1 md:grid-cols-3 gap-4 mt-4">
         <div
           class="border border-[#e3e3e3] rounded-lg p-4 hover:shadow-md cursor-pointer transition-all transform animate-fade-in duration-200"

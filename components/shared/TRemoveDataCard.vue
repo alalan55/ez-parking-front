@@ -25,9 +25,13 @@ const props = defineProps({
         "w-full",
       ].includes(value),
   },
+  loading: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-const emit = defineEmits(["update:modelValue"]);
+const emit = defineEmits(["update:modelValue", "confirm"]);
 
 const closeModal = () => {
   emit("update:modelValue", false);
@@ -86,12 +90,30 @@ onUnmounted(() => {
           </slot>
 
           <slot name="description">
-            <span class="p-text-secondary block font-thin">
+            <span class="p-text-secondary block mb-5 font-thin">
               {{ props.description }}
             </span>
           </slot>
 
           <slot />
+
+          <div class="grid grid-cols-2 gap-4">
+            <SharedTButton
+              variant="outlined"
+              class="flex-1"
+              @click="closeModal"
+            >
+              Cancelar
+            </SharedTButton>
+
+            <SharedTButton
+              :loading="props.loading"
+              :disabled="props.loading"
+              @click="emit('confirm')"
+            >
+              Remover
+            </SharedTButton>
+          </div>
         </div>
       </div>
     </div>
