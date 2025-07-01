@@ -3,6 +3,10 @@ export default defineNuxtConfig({
   compatibilityDate: "2025-05-15",
   devtools: { enabled: true },
 
+  app: {
+    pageTransition: { name: "page", mode: "out-in" },
+  },
+
   runtimeConfig: {
     public: {
       apiUrl: process.env.NUXT_APP_API_URL || "http://localhost:8080/",
@@ -16,7 +20,7 @@ export default defineNuxtConfig({
     "@nuxt/image",
     "@nuxtjs/tailwindcss",
     "@vueuse/nuxt",
-    "nuxt-toast"
+    "nuxt-toast",
   ],
 
   css: ["@/assets/css/main.css", "@/assets/css/tailwind.css"],
