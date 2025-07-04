@@ -53,6 +53,40 @@
       </section>
 
       <SharedTModal
+        v-model="confirmRemoveVehicleDialog"
+        :show-close-button="false"
+        :title="'Remover veículo'"
+        width="max-w-lg"
+      >
+        <div>
+          <span
+            >Você tem certeza que deseja remover o veículo:
+            <strong>"{{ vehicleToRemove?.plate || "" }}"</strong></span
+          >
+
+          <div
+            class="m-[2rem_auto_0] max-w-[300px] flex items-center gap-4 justify-end"
+          >
+            <SharedTButton
+              variant="outlined"
+              title="Cancelar"
+              @click="
+                confirmRemoveVehicleDialog = false;
+                vehicleToRemove = null;
+              "
+            />
+            <SharedTButton
+              :loading="confirmRemoveVehicleLoading"
+              :disabled="confirmRemoveVehicleLoading"
+              variant="primary"
+              title="Remover"
+              @click="confirmRemoveVehicle()"
+            />
+          </div>
+        </div>
+      </SharedTModal>
+
+      <SharedTModal
         v-model="handleClientDialog"
         :show-close-button="false"
         :title="isEditing ? 'Atualizar cliente' : 'Adicionar cliente'"
@@ -164,6 +198,7 @@
                             name="tabler:trash"
                             size="1.1rem"
                             class="cursor-pointer"
+                            @click="setVehicleToRemove(vehicle)"
                           />
                         </div>
                       </div>
@@ -232,7 +267,7 @@
                       <SharedTInput
                         v-model="newVehicle.year"
                         placeholder="Ano"
-                        type="text"
+                        type="number"
                       />
                     </div>
 
@@ -285,8 +320,6 @@
                   "
                 />
               </div>
-
-             
             </div>
           </section>
         </div>
@@ -328,6 +361,10 @@ const handleClientDialog = ref(false);
 const loadingAddClient = ref(false);
 const loadingAddVehicle = ref(false);
 const isEditing = ref(false);
+
+const confirmRemoveVehicleDialog = ref(false);
+const confirmRemoveVehicleLoading = ref(false);
+const vehicleToRemove = ref(null);
 
 const currentModalView = ref(0);
 
@@ -394,6 +431,43 @@ const columnsTable = [
 const debouncedSearch = useDebounceFn(() => {
   getClients();
 }, 550);
+
+const setVehicleToRemove = (vehicle) => {
+  vehicleToRemove.value = vehicle;
+  confirmRemoveVehicleDialog.value = true;
+};
+
+const confirmRemoveVehicle = async () => {
+  confirmRemoveVehicleLoading.value = true;
+
+  const { error } = await http.post(`/client/remove-vehicle`, {
+    userId: currentClient.value.id,
+    vehicleId: vehicleToRemove.value.id,
+  });
+
+  if (error.value) {
+    toast.error({
+      title: "Falha",
+      message: error.value.message || "Erro ao remover veículo.",
+    });
+    confirmRemoveVehicleLoading.value = false;
+    return;
+  }
+
+  confirmRemoveVehicleDialog.value = false;
+
+  toast.success({
+    title: "Sucesso",
+    message: "Veículo removido com sucesso.",
+  });
+
+  clientVehicles.value = clientVehicles.value.filter(
+    (v) => v.id !== vehicleToRemove.value.id
+  );
+
+  confirmRemoveVehicleLoading.value = false;
+  vehicleToRemove.value = null;
+};
 
 const getClients = async () => {
   try {
@@ -566,7 +640,7 @@ const addNewVehicle = async () => {
   const obj = {
     ...newVehicle.value,
     userId: currentClient.value.id,
-    organizatonId: 1, // mocado
+    organizationId: 1, // mocado
   };
 
   loadingAddVehicle.value = true;
@@ -610,11 +684,13 @@ watch(handleClientDialog, (newValue) => {
   }
 });
 
-
-watch( () => currentModalView.value, (nv) => {
-  console.log("Current modal view changed:", nv);
-  if (nv === 1) resetAddVehicle()
-});
+watch(
+  () => currentModalView.value,
+  (nv) => {
+    console.log("Current modal view changed:", nv);
+    if (nv === 1) resetAddVehicle();
+  }
+);
 // watch(
 //   () => [handleClientDialog.value, removeDialog.value],
 //   (newValue) => {
