@@ -29,6 +29,17 @@ const props = defineProps({
 
 const emit = defineEmits(["update:modelValue"]);
 
+const zIndex = ref(100);
+
+const getNextZIndex = () => {
+  if (typeof window !== "undefined") {
+    if (!window.__modalZIndex) window.__modalZIndex = 100;
+    window.__modalZIndex += 2;
+    return window.__modalZIndex;
+  }
+  return 100;
+};
+
 const closeModal = () => {
   emit("update:modelValue", false);
 };
@@ -46,6 +57,7 @@ watch(
   () => props.modelValue,
   (isOpen) => {
     if (isOpen) {
+      zIndex.value = getNextZIndex();
       document.addEventListener("keydown", handleKeydown);
     } else {
       document.removeEventListener("keydown", handleKeydown);
@@ -55,6 +67,7 @@ watch(
 
 onMounted(() => {
   if (props.modelValue) {
+    zIndex.value = getNextZIndex();
     document.addEventListener("keydown", handleKeydown);
   }
 });
@@ -68,7 +81,8 @@ onUnmounted(() => {
   <Teleport to="body">
     <div
       v-if="modelValue"
-      class="fixed inset-0 flex items-center justify-center bg-white/30 backdrop-blur-sm z-50"
+      class="fixed inset-0 flex items-center justify-center bg-white/30 backdrop-blur-sm"
+      :style="{ zIndex }"
       @click.self="closeModal"
     >
       <div :class="modalClasses">
