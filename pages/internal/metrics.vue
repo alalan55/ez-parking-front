@@ -11,7 +11,6 @@
           <SharedTInput
             v-model="search"
             placeholder="Buscar clientes"
-            @input="debouncedSearch"
           />
 
           <Icon name="tabler:search" size="1.5rem" class="text-[#5c748a]" />
@@ -19,299 +18,27 @@
       </div>
 
       <section class="mt-8">
-        <SharedTTable
-          :columns="columnsTable"
-          :rows="clients"
-          :loading="loading"
-        >
+        <SharedTTable :columns="columnsTable" :rows="logs" :loading="loading">
           <template #cell-createdAt="{ row }">
             {{ new Date(row.createdAt).toLocaleDateString("pt-BR") }}
           </template>
 
-          <template #cell-name="{ row }">
-            <span class="font-semibold">{{ row.name }}</span>
+          <template #cell-updatedAt="{ row }">
+            {{ new Date(row.updatedAt).toLocaleDateString("pt-BR") }}
           </template>
 
-          <template #cell-actions="{ row }">
-            <div class="flex items-center gap-4">
-              <Icon
-                name="tabler:pencil"
-                size="1.3rem"
-                class="cursor-pointer"
-                @click="updateClient(row)"
-              />
+          <template #cell-collaborator="{ row }">
+            <span> {{ row.collaborator?.name }}</span>
+          </template>
 
-              <Icon
-                name="tabler:trash"
-                size="1.3rem"
-                class="cursor-pointer"
-                @click="removeClient(row)"
-              />
-            </div>
+          <template #cell-vehicle="{ row }">
+            <span
+              >{{ vehicleType[row.vehicle.type] }} -
+              {{ row.vehicle.plate?.toUpperCase() }}</span
+            >
           </template>
         </SharedTTable>
       </section>
-
-      <SharedTModal
-        v-model="handleClientDialog"
-        :show-close-button="false"
-        :title="isEditing ? 'Atualizar cliente' : 'Adicionar cliente'"
-        width="max-w-4xl"
-      >
-        <div>
-          <div class="header flex gap-4 mb-4 mt-4">
-            <span
-              class="text-sm"
-              :class="{ 'active-view': currentModalView === 0 }"
-              @click="currentModalView = 0"
-            >
-              Cliente
-            </span>
-            <span
-              class="text-sm"
-              :class="{ 'active-view': currentModalView === 1 }"
-              @click="currentModalView = 1"
-            >
-              Veículos do cliente
-            </span>
-          </div>
-
-          <section v-show="currentModalView === 0">
-            <div class="mt-5">
-              <form @submit.prevent>
-                <section class="grid sm:grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label
-                      class="block text-xs font-medium text-[#5c748a] mb-1"
-                    >
-                      Nome
-                    </label>
-                    <SharedTInput
-                      v-model="client.name"
-                      placeholder="Nome"
-                      type="text"
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      class="block text-xs font-medium text-[#5c748a] mb-1"
-                    >
-                      Telefone
-                    </label>
-                    <SharedTInput
-                      v-model="client.phone"
-                      placeholder="Telefone"
-                      type="text"
-                    />
-                  </div>
-                </section>
-
-                <div
-                  class="m-[2rem_auto_0] max-w-[300px] flex items-center gap-4 justify-end"
-                >
-                  <SharedTButton
-                    variant="outlined"
-                    title="Cancelar"
-                    @click="handleClientDialog = false"
-                  />
-                  <SharedTButton
-                    :loading="loadingAddClient"
-                    variant="primary"
-                    :title="isEditing ? 'Atualizar' : 'Adicionar'"
-                    @click="isEditing ? confirmUpdateClient() : createClient()"
-                  />
-                </div>
-              </form>
-            </div>
-          </section>
-
-          <section v-show="currentModalView === 1">
-            <div class="mt-5">
-              <div v-show="!isAddingVehicle" class="vehicle-list">
-                <div
-                  class="grid sm:grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto max-h-[300px]"
-                >
-                  <div
-                    v-for="(vehicle, index) in clientVehicles"
-                    :key="index"
-                    class="p-4 bg-[#f0f4f8] rounded-lg shadow-sm"
-                  >
-                    <div
-                      class="flex items-center justify-between sm:gap-2 md:gap-4"
-                    >
-                      <div>
-                        <p class="font-semibold mb-2">
-                          {{ vehicle?.plate?.toUpperCase() }}
-                        </p>
-                        <div class="grid sm:grid-cols-1 md:grid-cols-5 gap-4">
-                          <p class="text-xs">{{ vehicle.mark }}</p>
-                          <p class="text-xs">{{ vehicle.model }}</p>
-                          <p class="text-xs">{{ vehicle.year }}</p>
-                          <p class="text-xs">{{ vehicle.color }}</p>
-                          <p class="text-xs">{{ vehicleType[vehicle.type] }}</p>
-                        </div>
-                      </div>
-                      <div>
-                        <div class="flex items-center gap-2">
-                          <Icon
-                            name="tabler:pencil"
-                            size="1.1rem"
-                            class="cursor-pointer"
-                          />
-
-                          <Icon
-                            name="tabler:trash"
-                            size="1.1rem"
-                            class="cursor-pointer"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  v-if="!clientVehicles.length"
-                  class="h-[100px] flex items-center justify-center"
-                >
-                  <p class="text-sm text-[#5c748a]">
-                    Nenhum veículo cadastrado para este cliente.
-                  </p>
-                </div>
-              </div>
-
-              <div v-show="isAddingVehicle">
-                <form @submit.prevent>
-                  <section class="grid sm:grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label
-                        class="block text-xs font-medium text-[#5c748a] mb-1"
-                      >
-                        Placa
-                      </label>
-                      <SharedTInput
-                        v-model="newVehicle.plate"
-                        placeholder="Placa"
-                        type="text"
-                      />
-                    </div>
-
-                    <div>
-                      <label
-                        class="block text-xs font-medium text-[#5c748a] mb-1"
-                      >
-                        Marca
-                      </label>
-                      <SharedTInput
-                        v-model="newVehicle.mark"
-                        placeholder="Marca"
-                        type="text"
-                      />
-                    </div>
-
-                    <div>
-                      <label
-                        class="block text-xs font-medium text-[#5c748a] mb-1"
-                      >
-                        Modelo
-                      </label>
-                      <SharedTInput
-                        v-model="newVehicle.model"
-                        placeholder="Modelo"
-                        type="text"
-                      />
-                    </div>
-
-                    <div>
-                      <label
-                        class="block text-xs font-medium text-[#5c748a] mb-1"
-                      >
-                        Ano
-                      </label>
-                      <SharedTInput
-                        v-model="newVehicle.year"
-                        placeholder="Ano"
-                        type="number"
-                      />
-                    </div>
-
-                    <div>
-                      <label
-                        class="block text-xs font-medium text-[#5c748a] mb-1"
-                      >
-                        Cor
-                      </label>
-                      <SharedTInput
-                        v-model="newVehicle.color"
-                        placeholder="Cor"
-                        type="text"
-                      />
-                    </div>
-
-                    <div>
-                      <label
-                        class="block text-xs font-medium text-[#5c748a] mb-1"
-                      >
-                        Tipo
-                      </label>
-
-                      <SharedTSelect
-                        v-model="newVehicle.type"
-                        :options="vehicleTypesOptions"
-                        placeholder="Selecione o tipo"
-                      />
-                    </div>
-                  </section>
-                </form>
-              </div>
-
-              <div
-                class="m-[2rem_auto_0] max-w-[300px] flex items-center gap-4 justify-end"
-              >
-                <SharedTButton
-                  variant="outlined"
-                  title="Cancelar"
-                  @click="handleClientDialog = false"
-                />
-                <SharedTButton
-                  :loading="loadingAddVehicle"
-                  variant="primary"
-                  :title="isAddingVehicle ? 'Adicionar' : 'Novo veículo'"
-                  @click="
-                    !isAddingVehicle
-                      ? (isAddingVehicle = true)
-                      : addNewVehicle()
-                  "
-                />
-              </div>
-
-             
-            </div>
-          </section>
-        </div>
-      </SharedTModal>
-
-      <SharedTRemoveDataCard
-        v-model="removeDialog"
-        :show-close-button="false"
-        :loading="loadingRemove"
-        title="Remover cliente"
-        description="Tem certeza que deseja remover este cliente? Esta ação não pode ser  desfeita."
-        width="max-w-lg"
-        @confirm="confirmRemoveClient"
-      />
-
-      <button
-        class="rounded-full fixed bottom-4 right-4 md:bottom-14 md:right-14 flex items-center justify-center p-3 bg-[#000] text-white shadow-lg hover:bg-[#2e2e2e] transition-colors duration-200 cursor-pointer"
-        @click="handleClientDialog = true"
-      >
-        <Icon
-          name="tabler:plus"
-          size="1.5rem"
-          class="bg-[#fff] text-white rounded-full p-3 shadow-lg transition-colors duration-200"
-        />
-      </button>
     </div>
   </div>
 </template>
@@ -321,6 +48,8 @@ import { useDebounceFn } from "@vueuse/core";
 
 const http = useApi();
 const toast = useToast();
+
+const logs = ref([]);
 
 const loading = ref(false);
 const loadingRemove = ref(false);
@@ -370,22 +99,36 @@ const vehicleTypesOptions = [
 
 const columnsTable = [
   {
-    key: "name",
-    label: "Nome",
-    thClass: "w-50",
+    key: "id",
+    label: "ID",
+    thClass: "w-10",
     tdClass: "text-[#0d151c]",
   },
-  { key: "phone", label: "Telefone", thClass: "w-40", tdClass: "" },
+
+  {
+    key: "vacancyId",
+    label: "Vaga ID",
+    thClass: "w-10",
+    tdClass: "text-[#0d151c]",
+  },
+  { key: "collaborator", label: "Colaborador", thClass: "w-30", tdClass: "" },
+  {
+    key: "vehicle",
+    label: "Veículo",
+    thClass: "w-30",
+    tdClass: "",
+  },
+
   {
     key: "createdAt",
-    label: "Registrado em",
-    thClass: "w-30",
+    label: "Check-in",
+    thClass: "w-20",
     tdClass: "text-[#49749c]",
   },
 
   {
-    key: "actions",
-    label: "Actions",
+    key: "updatedAt",
+    label: "Check-out",
     thClass: "w-20",
     tdClass: "text-[#49749c]",
   },
@@ -395,18 +138,13 @@ const debouncedSearch = useDebounceFn(() => {
   getClients();
 }, 550);
 
-
 const getLogsFromOrganization = async () => {
   try {
-
     const { data } = await http.get("/parking-log/1");
 
-    console.log(data.value)
-
- 
+    logs.value = data.value.content;
   } catch (error) {
     console.error("Error fetching organization logs:", error);
-  
   }
 };
 
@@ -625,11 +363,13 @@ watch(handleClientDialog, (newValue) => {
   }
 });
 
-
-watch( () => currentModalView.value, (nv) => {
-  console.log("Current modal view changed:", nv);
-  if (nv === 1) resetAddVehicle()
-});
+watch(
+  () => currentModalView.value,
+  (nv) => {
+    console.log("Current modal view changed:", nv);
+    if (nv === 1) resetAddVehicle();
+  }
+);
 // watch(
 //   () => [handleClientDialog.value, removeDialog.value],
 //   (newValue) => {
@@ -649,7 +389,7 @@ watch( () => currentModalView.value, (nv) => {
 // );
 
 getClients();
-getLogsFromOrganization()
+getLogsFromOrganization();
 </script>
 
 <style scoped lang="postcss">
