@@ -162,7 +162,10 @@
 
           <section v-show="currentModalView === 1">
             <div class="mt-5">
-              <div v-show="!isAddingVehicle" class="vehicle-list">
+              <div
+                v-show="!isAddingVehicle && !isUpdatingVehicle"
+                class="vehicle-list"
+              >
                 <div
                   class="grid sm:grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto max-h-[300px]"
                 >
@@ -192,6 +195,7 @@
                             name="tabler:pencil"
                             size="1.1rem"
                             class="cursor-pointer"
+                            @click="setVehicleToUpdate(vehicle)"
                           />
 
                           <Icon
@@ -216,7 +220,7 @@
                 </div>
               </div>
 
-              <div v-show="isAddingVehicle">
+              <div v-show="isAddingVehicle || isUpdatingVehicle">
                 <form @submit.prevent>
                   <section class="grid sm:grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -312,11 +316,19 @@
                 <SharedTButton
                   :loading="loadingAddVehicle"
                   variant="primary"
-                  :title="isAddingVehicle ? 'Adicionar' : 'Novo veículo'"
+                  :title="
+                    isAddingVehicle
+                      ? 'Adicionar'
+                      : isUpdatingVehicle
+                      ? 'Atualizar'
+                      : 'Novo veículo'
+                  "
                   @click="
-                    !isAddingVehicle
-                      ? (isAddingVehicle = true)
-                      : addNewVehicle()
+                    isAddingVehicle
+                      ? addNewVehicle()
+                      : isUpdatingVehicle
+                      ? updateVehicle()
+                      : (isAddingVehicle = true)
                   "
                 />
               </div>
@@ -379,6 +391,7 @@ const client = ref({
 });
 
 const isAddingVehicle = ref(false);
+const isUpdatingVehicle = ref(false);
 
 const newVehicle = ref({
   plate: "",
@@ -432,9 +445,44 @@ const debouncedSearch = useDebounceFn(() => {
   getClients();
 }, 550);
 
+// vehicles
+const getVehiclesFromClient = async (clientId) => {
+  try {
+    loading.value = true;
+
+    const { data, error } = await http.get(
+      `/vehicle/get-all-by-client/${clientId}/1`
+    );
+
+    if (error.value) {
+      toast.error({
+        title: "Erro",
+        message: error.value.message || "Erro ao buscar veículos do cliente.",
+      });
+      loading.value = false;
+      return;
+    }
+
+    clientVehicles.value = data.value.content;
+
+    loading.value = false;
+  } catch (error) {
+    console.error("Error fetching vehicles:", error);
+    loading.value = false;
+  }
+};
+
 const setVehicleToRemove = (vehicle) => {
   vehicleToRemove.value = vehicle;
   confirmRemoveVehicleDialog.value = true;
+};
+
+const setVehicleToUpdate = (vehicle) => {
+  newVehicle.value = {
+    ...vehicle,
+  };
+
+  isUpdatingVehicle.value = true;
 };
 
 const confirmRemoveVehicle = async () => {
@@ -469,6 +517,88 @@ const confirmRemoveVehicle = async () => {
   vehicleToRemove.value = null;
 };
 
+const resetAddVehicle = () => {
+  isAddingVehicle.value = false;
+  isUpdatingVehicle.value = false;
+  newVehicle.value = {
+    plate: "",
+    mark: "",
+    model: "",
+    year: "",
+    color: "",
+    type: 0,
+  };
+};
+
+const updateVehicle = async () => {
+  loadingAddVehicle.value = true;
+
+  const { error } = await http.put(`/vehicle/${newVehicle.value.id}`, {
+    ...newVehicle.value,
+    userId: currentClient.value.id,
+  });
+
+  if (error.value) {
+    toast.error({
+      title: "Erro",
+      message: error.value.message || "Erro ao atualizar veículo.",
+    });
+
+    loadingAddVehicle.value = false;
+    console.error("Error on update vehicle:", error.value);
+    return;
+  }
+
+  toast.success({
+    title: "Sucesso",
+    message: "Veículo atualizado com sucesso.",
+  });
+
+  const index = clientVehicles.value.findIndex(
+    (v) => v.id === newVehicle.value.id
+  );
+
+  if (index !== -1) clientVehicles.value[index] = { ...newVehicle.value };
+
+  loadingAddVehicle.value = false;
+
+  resetAddVehicle();
+};
+
+const addNewVehicle = async () => {
+  const obj = {
+    ...newVehicle.value,
+    userId: currentClient.value.id,
+    organizationId: 1, // mocado
+  };
+
+  loadingAddVehicle.value = true;
+
+  const { data, error } = await http.post("/client/add-vehicle", obj);
+
+  if (error.value) {
+    toast.error({
+      title: "Erro",
+      message: error.value.message || "Erro ao adicionar veículo.",
+    });
+
+    loadingAddVehicle.value = false;
+    return;
+  }
+
+  clientVehicles.value.push({ ...data.value.content.vehicle });
+
+  toast.success({
+    title: "Sucesso",
+    message: "Veículo adicionado com sucesso.",
+  });
+
+  resetAddVehicle();
+
+  loadingAddVehicle.value = false;
+};
+
+// clients
 const getClients = async () => {
   try {
     loading.value = true;
@@ -598,116 +728,29 @@ const confirmUpdateClient = async () => {
   loadingAddClient.value = false;
 };
 
-const getVehiclesFromClient = async (clientId) => {
-  try {
-    loading.value = true;
-
-    const { data, error } = await http.get(
-      `/vehicle/get-all-by-client/${clientId}/1`
-    );
-
-    if (error.value) {
-      toast.error({
-        title: "Erro",
-        message: error.value.message || "Erro ao buscar veículos do cliente.",
-      });
-      loading.value = false;
-      return;
-    }
-
-    clientVehicles.value = data.value.content;
-
-    loading.value = false;
-  } catch (error) {
-    console.error("Error fetching vehicles:", error);
-    loading.value = false;
-  }
-};
-
-const resetAddVehicle = () => {
+const resetClientModal = () => {
+  isEditing.value = false;
+  currentModalView.value = 0;
+  client.value = { name: "", phone: "" };
+  currentClient.value = null;
+  clientVehicles.value = [];
   isAddingVehicle.value = false;
-  newVehicle.value = {
-    plate: "",
-    mark: "",
-    model: "",
-    year: "",
-    color: "",
-    type: 0,
-  };
-};
-
-const addNewVehicle = async () => {
-  const obj = {
-    ...newVehicle.value,
-    userId: currentClient.value.id,
-    organizationId: 1, // mocado
-  };
-
-  loadingAddVehicle.value = true;
-
-  const { data, error } = await http.post("/client/add-vehicle", obj);
-
-  if (error.value) {
-    toast.error({
-      title: "Erro",
-      message: error.value.message || "Erro ao adicionar veículo.",
-    });
-
-    loadingAddVehicle.value = false;
-    return;
-  }
-
-  clientVehicles.value.push({ ...data.value.content.vehicle });
-
-  toast.success({
-    title: "Sucesso",
-    message: "Veículo adicionado com sucesso.",
-  });
-
-  resetAddVehicle();
-
+  isUpdatingVehicle.value = false;
+  loadingAddClient.value = false;
   loadingAddVehicle.value = false;
+  resetAddVehicle();
 };
 
 watch(handleClientDialog, (newValue) => {
-  if (!newValue) {
-    isEditing.value = false;
-
-    currentModalView.value = 0;
-
-    client.value = {
-      name: "",
-      phone: "",
-    };
-
-    resetAddVehicle();
-  }
+  if (!newValue) resetClientModal();
 });
 
 watch(
   () => currentModalView.value,
   (nv) => {
-    console.log("Current modal view changed:", nv);
     if (nv === 1) resetAddVehicle();
   }
 );
-// watch(
-//   () => [handleClientDialog.value, removeDialog.value],
-//   (newValue) => {
-//     console.log("Dialog state changed:", newValue);
-//     if (newValue.some((v) => v === false)) {
-//       console.log('entrei')
-
-//       currentClient.value = null;
-//       isEditing.value = false;
-
-//       client.value = {
-//         name: "",
-//         phone: "",
-//       };
-//     }
-//   }
-// );
 
 getClients();
 </script>

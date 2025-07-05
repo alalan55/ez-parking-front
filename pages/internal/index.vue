@@ -11,7 +11,7 @@
         <div
           class="border border-[#e3e3e3] rounded-lg p-4 hover:shadow-md cursor-pointer transition-all transform animate-fade-in duration-200"
         >
-          <p class="text-sm">Ocupação</p>
+          <p class="text-sm flex items-center gap-1">Ocupação <Icon name="iconoir:car" size="1.1rem"/></p>
           <span class="font-bold text-lg">
             {{ occupancy?.occupiedPercentage || 0 }}%
           </span>
@@ -20,14 +20,14 @@
         <div
           class="border border-[#e3e3e3] rounded-lg p-4 hover:shadow-md cursor-pointer transition-all transform animate-fade-in duration-200"
         >
-          <p class="text-sm">Espaços disponíveis</p>
+          <p class="text-sm flex items-center gap-1">Espaços disponíveis <Icon name="mdi:garage-open" size="1.1rem"/></p>
           <span class="font-bold text-lg">{{ occupancy?.available || 0 }}</span>
         </div>
 
         <div
           class="border border-[#e3e3e3] rounded-lg p-4 hover:shadow-md cursor-pointer transition-all transform animate-fade-in duration-200"
         >
-          <p class="text-sm">Receita total</p>
+          <p class="text-sm flex items-center gap-1">Receita total <Icon name="tabler:coin" size="1.1rem"/></p>
           <span class="font-bold text-lg">R$ 12,500</span>
         </div>
       </section>

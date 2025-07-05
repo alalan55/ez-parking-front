@@ -79,7 +79,7 @@ const menu = ref(null);
 
 const links = [
   { name: "Home", path: "/internal" },
-  { name: "Métricas", path: "/internal" },
+  { name: "Métricas", path: "/internal/metrics" },
   { name: "Clientes", path: "/internal/clients" },
   { name: "Organização", path: "/internal/organization" },
 ];
