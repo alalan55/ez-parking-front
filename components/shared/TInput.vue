@@ -8,6 +8,8 @@
   />
 </template>
 <script setup>
+const model = defineModel({ type: String || Number });
+
 const props = defineProps({
   readonly: {
     type: Boolean,
@@ -17,15 +19,9 @@ const props = defineProps({
     type: String,
     default: "",
   },
-  value: {
-    type: String,
-    default: "",
-  },
   type: {
     type: String,
     default: "text",
   },
 });
-
-const model = defineModel();
 </script>

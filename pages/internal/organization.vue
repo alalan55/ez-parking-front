@@ -98,6 +98,7 @@ const http = useApi();
 const toast = useToast();
 
 const loading = ref(false);
+
 const organization = ref({
   id: "",
   name: "",
@@ -110,16 +111,20 @@ const organization = ref({
 
 const getOrgInfo = async () => {
   try {
-    loading.value = true;
+    const { data, error } = await http.get("/organization/get-by-id/1");
 
-    const { data } = await http.get("/organization/get-by-id/1");
+    if (error.value) {
+      toast.error({
+        title: "Falha",
+        message:
+          error.value.message || "Erro ao buscar informações da organização.",
+      });
+      return;
+    }
 
-    organization.value = data.value.content;
-
-    loading.value = false;
+    Object.assign(organization.value, data.value.content);
   } catch (error) {
     console.error("Error fetching vacancies logs:", error);
-    loading.value = false;
   }
 };
 
@@ -143,7 +148,7 @@ const updateOrg = async () => {
       message: "Organização atualizada com sucesso.",
     });
 
-    organization.value = data.value.content;
+    Object.assign(organization.value, data.value.content); // <-- aqui!
 
     loading.value = false;
   } catch (error) {
@@ -152,7 +157,9 @@ const updateOrg = async () => {
   }
 };
 
-getOrgInfo();
+onMounted(() => {
+  getOrgInfo();
+});
 </script>
 
 <style scoped lang="postcss">

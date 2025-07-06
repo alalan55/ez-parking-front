@@ -78,8 +78,8 @@
 
           <template #cell-customer="{ row }">
             {{
-              row?.vehicle?.Clients.length > 0
-                ? row?.vehicle?.Clients[0]?.name
+              row?.vehicle?.clients.length > 0
+                ? row?.vehicle?.clients[0]?.name
                 : "N/A"
             }}
           </template>
@@ -197,9 +197,18 @@ const getVacanciesLogs = async () => {
   try {
     loading.value = true;
 
-    const { data } = await http.get("/dash/vacancies-by-organization/1", {
-      params: { plate: search.value },
-    });
+    const { data, error } = await http.get(
+      "/dash/vacancies-by-organization/1",
+      {
+        params: { plate: search.value },
+      }
+    );
+
+    if (error.value) {
+      console.error("Error fetching vacancies logs:", error.value);
+      loading.value = false;
+      return;
+    }
 
     vacancies.value = data.value.content.vacancies;
     occupancy.value = data.value.content.occupancy;

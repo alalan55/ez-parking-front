@@ -15,14 +15,15 @@
             :readonly="!isCheckin"
             placeholder="Placa"
             type="text"
+            @input="debounceSearch"
           />
         </div>
 
         <div>
           <label class="block text-xs font-medium text-[#5c748a] mb-1"
-            >Cliente</label
+            >Clientes</label
           >
-          <SharedTInput placeholder="Cliente" type="text" />
+          <SharedTSelect :options="clients" placeholder="Cliente" type="text" />
         </div>
 
         <div>
@@ -42,7 +43,15 @@
           >
           <SharedTInput placeholder="Hora saída" type="text" />
         </div>
+
+      
       </div>
+        <div class="mt-4">
+          <label class="block text-xs font-medium text-[#5c748a] mb-1"
+            >Observação</label
+          >
+          <SharedTInput placeholder="Observação" type="text" />
+        </div>
     </div>
 
     <div class="flex items-center justify-end">
@@ -56,6 +65,8 @@
 </template>
 
 <script setup>
+import { useDebounceFn } from "@vueuse/core";
+
 const props = defineProps({
   infoProps: {
     type: Object,
@@ -63,8 +74,48 @@ const props = defineProps({
   },
 });
 
+const toast = useToast();
+const http = useApi();
+
 const information = ref({ id: "", vehicle: { plate: "" }, status: "" });
+const clients = ref([]);
+
+const debounceSearch = useDebounceFn(() => {
+  searchClientsByVehicle();
+}, 800);
+
 const isCheckin = computed(() => !props.infoProps);
+
+const searchClientsByVehicle = async () => {
+  const plate = information.value.vehicle.plate;
+  if (!plate) return;
+
+  if (plate.length < 7) {
+    toast.warning({
+      title: "Atenção",
+      message: "A placa deve ter pelo menos 7 caracteres.",
+    });
+    return;
+  }
+
+  const { data, error } = await http.get(
+    `/dash/clients-based-on-vehicle/${plate}`
+  );
+
+  if (error.value) {
+    console.error("Error fetching clients by vehicle:", error);
+    toast.error({
+      title: "Falha",
+      description: "Não foi possível buscar os clientes para este veículo.",
+    });
+  }
+
+  clients.value = data.value.content.map((e) => ({
+    ...e,
+    label: e.name,
+    value: e.id,
+  }));
+};
 
 const fillLocalInfo = () => {
   if (props.infoProps) {
