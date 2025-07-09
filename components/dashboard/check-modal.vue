@@ -5,7 +5,7 @@
     </h2>
 
     <div class="rounded-xl p-6 flex-1">
-      <div class="grid sm:grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="grid sm:grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label class="block text-xs font-medium text-[#5c748a] mb-1"
             >Placa do veículo</label
@@ -23,7 +23,12 @@
           <label class="block text-xs font-medium text-[#5c748a] mb-1"
             >Clientes</label
           >
-          <SharedTSelect :options="clients" placeholder="Cliente" type="text" />
+          <SharedTSelect
+            v-model="information.clientId"
+            :options="clients"
+            placeholder="Cliente"
+            type="text"
+          />
         </div>
 
         <div>
@@ -37,28 +42,34 @@
             type="time"
           />
         </div>
-        <div>
+        <div v-if="!isCheckin">
           <label class="block text-xs font-medium text-[#5c748a] mb-1"
             >Hora saída</label
           >
           <SharedTInput placeholder="Hora saída" type="text" />
         </div>
-
-      
       </div>
-        <div class="mt-4">
-          <label class="block text-xs font-medium text-[#5c748a] mb-1"
-            >Observação</label
-          >
-          <SharedTInput placeholder="Observação" type="text" />
-        </div>
+      <div class="mt-4">
+        <label class="block text-xs font-medium text-[#5c748a] mb-1"
+          >Observação</label
+        >
+        <SharedTInput
+          v-model="information.observation"
+          :readonly="!isCheckin"
+          placeholder="Observação"
+          type="text"
+        />
+      </div>
     </div>
 
     <div class="flex items-center justify-end">
       <SharedTButton
         class="max-w-[130px]"
         type="primary"
+        :loading="loading"
+        :disabled="loading || !information.vehicle.plate"
         :title="isCheckin ? 'Check-in' : 'Check-out'"
+        @click="isCheckin ? checkin() : checkout()"
       />
     </div>
   </section>
@@ -66,6 +77,8 @@
 
 <script setup>
 import { useDebounceFn } from "@vueuse/core";
+
+const emit = defineEmits(["close", "update"]);
 
 const props = defineProps({
   infoProps: {
@@ -79,6 +92,7 @@ const http = useApi();
 
 const information = ref({ id: "", vehicle: { plate: "" }, status: "" });
 const clients = ref([]);
+const loading = ref(false);
 
 const debounceSearch = useDebounceFn(() => {
   searchClientsByVehicle();
@@ -127,6 +141,69 @@ const fillLocalInfo = () => {
       minute: "2-digit",
     });
   }
+};
+
+const pad = (n) => {
+  return n < 10 ? "0" + n : n;
+};
+
+const checkin = async () => {
+  const model = {
+    vehiclePlate: information.value.vehicle.plate,
+    clientId: information.value.clientId,
+    entryTime: information.value.entryTime,
+    observation: information.value.observation,
+    collaboratorId: 1, // Assuming a static collaborator ID for now
+    organizationId: 1, // Assuming a static organization ID for now
+  };
+
+  // parse entryTime to ISO string and format to today
+  const [hours, minutes] = information.value.entryTime.split(":");
+  const today = new Date();
+
+  today.setHours(Number(hours), Number(minutes), 0, 0);
+  model.entryTime = today.toISOString();
+
+  // const year = today.getFullYear();
+  // const month = pad(today.getMonth() + 1);
+  // const day = pad(today.getDate());
+  // const h = pad(today.getHours());
+  // const m = pad(today.getMinutes());
+  // const s = pad(today.getSeconds());
+
+  // model.entryTime = `${year}-${month}-${day}T${h}:${m}:${s}`;
+
+  const { error } = await http.post("/dash/checkin", model);
+
+  if (error.value) {
+    console.error("Error during check-in:", error);
+    toast.error({
+      title: "Falha",
+      description: "Não foi possível realizar o check-in.",
+    });
+    return;
+  }
+
+  toast.success({
+    title: "Check-in realizado com sucesso!",
+  });
+
+  emit("update");
+};
+
+const checkout = async () => {
+  // const { data, error } = await http.post("/dash/checkout", information.value);
+  // if (error.value) {
+  //   console.error("Error during check-out:", error);
+  //   toast.error({
+  //     title: "Falha",
+  //     description: "Não foi possível realizar o check-out.",
+  //   });
+  //   return;
+  // }
+  // toast.success({
+  //   title: "Check-out realizado com sucesso!",
+  // });
 };
 
 fillLocalInfo();

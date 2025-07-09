@@ -86,8 +86,8 @@
 
           <template #cell-arrival="{ row }">
             {{
-              row?.activeVacancyLog?.createdAt
-                ? new Date(row?.activeVacancyLog?.createdAt).toLocaleTimeString(
+              row?.activeVacancyLog?.entryTime
+                ? new Date(row?.activeVacancyLog?.entryTime).toLocaleTimeString(
                     "pt-BR",
                     {
                       hour: "2-digit",
@@ -119,7 +119,13 @@
         :show-close-button="false"
         width="max-w-4xl"
       >
-        <DashboardCheckModal :info-props="currentVacancy" />
+        <DashboardCheckModal
+          :info-props="currentVacancy"
+          @update="
+            infoDialog = false;
+            getVacanciesLogs();
+          "
+        />
       </SharedTModal>
 
       <button
@@ -222,7 +228,10 @@ const getVacanciesLogs = async () => {
 
 const updateVacancy = (row) => {
   if (row.status === 0) currentVacancy.value = null;
-  else currentVacancy.value = row;
+  else{
+     currentVacancy.value = row;
+     currentVacancy.value.observation = row.activeVacancyLog?.observation || "";
+  }
 
   infoDialog.value = true;
 };
