@@ -39,6 +39,7 @@
           class="menu-hamburguer text-[#000] hover:text-[#4f4f4f] transition-colors duration-200 cursor-pointer"
           @click="handleClickmenu"
         />
+
         <div
           ref="menu"
           class="menu flex items-center gap-6 shadow-2xl md:shadow-none"
@@ -46,7 +47,14 @@
           <template v-for="link in links" :key="link.name">
             <NuxtLink
               :to="link.path"
-              class="link text-[#000] hover:text-[#4f4f4f] transition-colors duration-200 font-medium hover:font-semibold"
+              class="link text-[#000] hover:text-[#4f4f4f] transition-colors duration-200 font-medium hover:font-semibold sm:hidden md:inline-block"
+            >
+              {{ link.name }}
+            </NuxtLink>
+
+            <NuxtLink
+              :to="link.path"
+              class="link text-[#000] hover:text-[#4f4f4f] transition-colors duration-200 font-medium hover:font-semibold sm:inline-block md:hidden"
               @click="handleClickmenu"
             >
               {{ link.name }}

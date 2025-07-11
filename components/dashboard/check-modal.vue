@@ -46,7 +46,11 @@
           <label class="block text-xs font-medium text-[#5c748a] mb-1"
             >Hora saída</label
           >
-          <SharedTInput placeholder="Hora saída" type="text" />
+          <SharedTInput
+            v-model="information.exitTime"
+            placeholder="Hora saída"
+            type="time"
+          />
         </div>
       </div>
       <div class="mt-4">
@@ -135,7 +139,7 @@ const fillLocalInfo = () => {
   if (props.infoProps) {
     information.value = { ...props.infoProps };
     information.value.entryTime = new Date(
-      props.infoProps.activeVacancyLog.createdAt
+      props.infoProps?.activeVacancyLog?.createdAt
     ).toLocaleTimeString("pt-BR", {
       hour: "2-digit",
       minute: "2-digit",
@@ -143,11 +147,12 @@ const fillLocalInfo = () => {
   }
 };
 
-const pad = (n) => {
-  return n < 10 ? "0" + n : n;
-};
+// const pad = (n) => {
+//   return n < 10 ? "0" + n : n;
+// };
 
 const checkin = async () => {
+  loading.value = true;
   const model = {
     vehiclePlate: information.value.vehicle.plate,
     clientId: information.value.clientId,
@@ -164,18 +169,10 @@ const checkin = async () => {
   today.setHours(Number(hours), Number(minutes), 0, 0);
   model.entryTime = today.toISOString();
 
-  // const year = today.getFullYear();
-  // const month = pad(today.getMonth() + 1);
-  // const day = pad(today.getDate());
-  // const h = pad(today.getHours());
-  // const m = pad(today.getMinutes());
-  // const s = pad(today.getSeconds());
-
-  // model.entryTime = `${year}-${month}-${day}T${h}:${m}:${s}`;
-
   const { error } = await http.post("/dash/checkin", model);
 
   if (error.value) {
+    loading.value = false;
     console.error("Error during check-in:", error);
     toast.error({
       title: "Falha",
@@ -188,22 +185,55 @@ const checkin = async () => {
     title: "Check-in realizado com sucesso!",
   });
 
+  loading.value = false;
+
   emit("update");
 };
 
 const checkout = async () => {
-  // const { data, error } = await http.post("/dash/checkout", information.value);
-  // if (error.value) {
-  //   console.error("Error during check-out:", error);
-  //   toast.error({
-  //     title: "Falha",
-  //     description: "Não foi possível realizar o check-out.",
-  //   });
-  //   return;
-  // }
-  // toast.success({
-  //   title: "Check-out realizado com sucesso!",
-  // });
+
+
+  if(!information.value.exitTime) {
+    toast.warning({
+      title: "Atenção",
+      message: "Por favor, informe a hora de saída.",
+    });
+    return;
+  }
+
+  loading.value = true;
+
+  const model = {
+    vacancyId: information.value.id,
+    logId: information.value.parkingLogId,
+    exitTime: information.value.exitTime,
+    collaboratorId: 1, // Assuming a static collaborator ID for now
+    organizationId: 1, // Assuming a static organization ID for now
+  };
+
+  const [hours, minutes] = information.value.exitTime.split(":");
+  const today = new Date();
+  today.setHours(Number(hours), Number(minutes), 0, 0);
+  model.exitTime = today.toISOString();
+
+  const { error } = await http.post("/dash/checkout", model);
+
+  if (error.value) {
+    loading.value = false;
+    console.error("Error during check-out:", error.value);
+    toast.error({
+      title: "Falha",
+      message: "Não foi possível realizar o check-out.",
+    });
+    return;
+  }
+
+  toast.success({
+    title: "Check-out realizado com sucesso!",
+  });
+
+  loading.value = false;
+  emit("update");
 };
 
 fillLocalInfo();

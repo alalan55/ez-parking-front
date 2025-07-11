@@ -8,10 +8,7 @@
 
       <div class="mt-8">
         <div class="flex items-center gap-3">
-          <SharedTInput
-            v-model="search"
-            placeholder="Buscar clientes"
-          />
+          <SharedTInput v-model="search" placeholder="Buscar clientes" />
 
           <Icon name="tabler:search" size="1.5rem" class="text-[#5c748a]" />
         </div>
@@ -19,12 +16,26 @@
 
       <section class="mt-8">
         <SharedTTable :columns="columnsTable" :rows="logs" :loading="loading">
-          <template #cell-createdAt="{ row }">
-            {{ new Date(row.createdAt).toLocaleDateString("pt-BR") }}
+          <template #cell-entryTime="{ row }">
+            {{
+              row?.entryTime
+                ? new Date(row?.entryTime)?.toLocaleDateString("pt-BR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "N/A"
+            }}
           </template>
 
-          <template #cell-updatedAt="{ row }">
-            {{ new Date(row.updatedAt).toLocaleDateString("pt-BR") }}
+          <template #cell-exitTime="{ row }">
+            {{
+              row.exitTime
+                ? new Date(row?.exitTime)?.toLocaleDateString("pt-BR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "N/A"
+            }}
           </template>
 
           <template #cell-collaborator="{ row }">
@@ -120,14 +131,14 @@ const columnsTable = [
   },
 
   {
-    key: "createdAt",
+    key: "entryTime",
     label: "Check-in",
     thClass: "w-20",
     tdClass: "text-[#49749c]",
   },
 
   {
-    key: "updatedAt",
+    key: "exitTime",
     label: "Check-out",
     thClass: "w-20",
     tdClass: "text-[#49749c]",
