@@ -7,9 +7,9 @@
     <div class="rounded-xl p-6 flex-1">
       <div class="grid sm:grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label class="block text-xs font-medium text-[#5c748a] mb-1"
-            >Placa do veículo</label
-          >
+          <label class="block text-xs font-medium text-[#5c748a] mb-1">
+            Placa do veículo
+          </label>
           <SharedTInput
             v-model="information.vehicle.plate"
             :readonly="!isCheckin"
@@ -147,10 +147,6 @@ const fillLocalInfo = () => {
   }
 };
 
-// const pad = (n) => {
-//   return n < 10 ? "0" + n : n;
-// };
-
 const checkin = async () => {
   loading.value = true;
   const model = {
@@ -191,9 +187,7 @@ const checkin = async () => {
 };
 
 const checkout = async () => {
-
-
-  if(!information.value.exitTime) {
+  if (!information.value.exitTime) {
     toast.warning({
       title: "Atenção",
       message: "Por favor, informe a hora de saída.",
