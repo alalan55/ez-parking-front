@@ -1,6 +1,7 @@
 <template>
   <input
     v-model="model"
+    v-maska="`${props.mask}`"
     :placeholder="props.placeholder"
     :type="props.type"
     :readonly="props.readonly"
@@ -8,6 +9,7 @@
   />
 </template>
 <script setup>
+import { vMaska } from "maska/vue";
 const model = defineModel({ type: String || Number });
 
 const props = defineProps({
@@ -22,6 +24,10 @@ const props = defineProps({
   type: {
     type: String,
     default: "text",
+  },
+  mask: {
+    type: String,
+    default: "",
   },
 });
 </script>

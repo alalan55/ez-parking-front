@@ -135,6 +135,7 @@
                     </label>
                     <SharedTInput
                       v-model="client.phone"
+                      mask="(##) # ####-####"
                       placeholder="Telefone"
                       type="text"
                     />
