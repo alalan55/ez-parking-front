@@ -1,11 +1,40 @@
 <template>
-  <div class="h-full p-4">
+  <div class="h-full p-4 overflow-y-auto">
     <div class="content max-w-[1100px] mx-auto mt-10">
       <h1 class="text-3xl font-bold">Métricas</h1>
       <span class="text-[#4A739C]">
         Gerencie as métricas da sua organização.
       </span>
+      <div class="charts-container mt-8 flex gap-4 flex-wrap">
+        <div
+          class="h-[300px] mt-8 w-full border border-[#E0E7F1] rounded-xl p-6 flex flex-col flex-[1_1_300px]"
+        >
+          <div class="flex flex-col gap-1 mb-4">
+            <small> Utilização das vagas </small>
+            <strong class="text-3xl">85%</strong>
 
+            <small class="text-[#4A739C]">Últimos 30 dias</small>
+          </div>
+          <div class="flex-1">
+            <VChart ref="utilizationChart" :option="optionUtilization" />
+          </div>
+        </div>
+
+        <div
+          class="h-[300px] mt-8 w-full border border-[#E0E7F1] rounded-xl p-6 flex flex-col flex-[1_1_300px]"
+        >
+          <div class="flex flex-col gap1">
+            <small> Tendência de Receita </small>
+            <strong class="text-3xl">R$ 1300,00</strong>
+
+            <small class="text-[#4A739C]">Últimos 30 dias</small>
+          </div>
+
+          <div class="flex-1">
+            <VChart ref="revenueTrendChart" :option="optionRevenueTrend" />
+          </div>
+        </div>
+      </div>
       <div class="mt-8">
         <div class="flex items-center gap-3">
           <SharedTInput v-model="search" placeholder="Buscar clientes" />
@@ -55,26 +84,21 @@
 </template>
 
 <script setup>
-import { useDebounceFn } from "@vueuse/core";
-
 const http = useApi();
 const toast = useToast();
+
+const utilizationChart = ref(null);
+const revenueTrendChart = ref(null);
 
 const logs = ref([]);
 
 const loading = ref(false);
-const loadingRemove = ref(false);
 const handleClientDialog = ref(false);
-const loadingAddClient = ref(false);
-const loadingAddVehicle = ref(false);
 const isEditing = ref(false);
 
 const currentModalView = ref(0);
 
-const removeDialog = ref(false);
 const clients = ref([]);
-const clientVehicles = ref([]);
-const currentClient = ref(null);
 const search = ref("");
 const client = ref({
   name: "",
@@ -92,6 +116,62 @@ const newVehicle = ref({
   type: 0, // Default to Carro
 });
 
+const optionUtilization = ref({
+  title: { text: "Utilização do Espaço (Seg-Sex)" },
+  tooltip: {},
+  legend: { data: ["Vagas Ocupadas"] },
+  xAxis: {
+    type: "category",
+    data: ["Seg", "Ter", "Qua", "Qui", "Sex"],
+  },
+  yAxis: { type: "value", name: "Vagas" },
+  series: [
+    {
+      name: "Vagas Ocupadas",
+      type: "bar",
+      data: [32, 45, 38, 41, 50], // mock: vagas ocupadas por dia
+      itemStyle: { color: "#4A739C" },
+      barMaxWidth: 40,
+    },
+  ],
+  grid: {
+    left: 0,
+    right: 0,
+    top: 40,
+    bottom: 0,
+    containLabel: true,
+  },
+});
+
+const optionRevenueTrend = ref({
+  title: { text: "Tendência de Receita (Seg-Sex)" },
+  tooltip: { trigger: "axis" },
+  xAxis: {
+    type: "category",
+    data: ["Seg", "Ter", "Qua", "Qui", "Sex"],
+  },
+  yAxis: { type: "value", name: "R$" },
+  grid: {
+    left: 0,
+    right: 0,
+    top: 40,
+    bottom: 0,
+    containLabel: true,
+  },
+  series: [
+    {
+      name: "Receita",
+      type: "line",
+      data: [120, 180, 150, 200, 250], // mock: receita por dia
+      smooth: true,
+      lineStyle: { color: "#4A739C", width: 3 },
+      areaStyle: { color: "rgba(74,115,156,0.15)" },
+      symbol: "circle",
+      symbolSize: 10,
+    },
+  ],
+});
+
 const vehicleType = {
   0: "Carro",
   1: "Moto",
@@ -99,14 +179,6 @@ const vehicleType = {
   3: "Ônibus",
   4: "Bicicleta",
 };
-
-const vehicleTypesOptions = [
-  { label: "Carro", value: 0 },
-  { label: "Moto", value: 1 },
-  { label: "Caminhão", value: 2 },
-  { label: "Ônibus", value: 3 },
-  { label: "Bicicleta", value: 4 },
-];
 
 const columnsTable = [
   {
@@ -145,10 +217,6 @@ const columnsTable = [
   },
 ];
 
-const debouncedSearch = useDebounceFn(() => {
-  getClients();
-}, 550);
-
 const getLogsFromOrganization = async () => {
   try {
     const { data } = await http.get("/parking-log/1");
@@ -178,142 +246,6 @@ const getClients = async () => {
   }
 };
 
-const updateClient = (row) => {
-  currentClient.value = row;
-  client.value = row;
-
-  getVehiclesFromClient(row.id);
-
-  isEditing.value = true;
-  handleClientDialog.value = true;
-};
-
-const removeClient = (row) => {
-  currentClient.value = row;
-  removeDialog.value = true;
-};
-
-const confirmRemoveClient = async () => {
-  loadingRemove.value = true;
-
-  const { error } = await http.delete(
-    `/client/delete-from-organization/1/${currentClient.value.id}`
-  );
-
-  if (error.value) {
-    toast.error({
-      title: "Falha",
-      message: error.value.message || "Erro ao remover cliente.",
-    });
-    loadingRemove.value = false;
-    return;
-  }
-
-  removeDialog.value = false;
-  currentClient.value = null;
-
-  toast.success({
-    title: "Sucesso",
-    message: "Cliente removido com sucesso.",
-  });
-
-  loadingRemove.value = false;
-  getClients();
-};
-
-const createClient = async () => {
-  loadingAddClient.value = true;
-
-  const { error } = await http.post("/client", {
-    ...client.value,
-    organizationId: 1,
-  });
-
-  if (error.value) {
-    toast.error({
-      title: "Falha",
-      message: error.value.message || "Erro ao cadastrar cliente.",
-    });
-    loadingAddClient.value = false;
-    return;
-  }
-
-  handleClientDialog.value = false;
-
-  toast.success({
-    title: "Sucesso",
-    message: "Cliente cadastrado com sucesso.",
-  });
-
-  client.value = {
-    name: "",
-    phone: "",
-  };
-
-  getClients();
-
-  loadingAddClient.value = false;
-};
-
-const confirmUpdateClient = async () => {
-  loadingAddClient.value = true;
-
-  const { error } = await http.put("/client", {
-    ...client.value,
-  });
-
-  if (error.value) {
-    toast.error({
-      title: "Falha",
-      message: error.value.message || "Erro ao atualizar cliente.",
-    });
-    loadingAddClient.value = false;
-    return;
-  }
-
-  handleClientDialog.value = false;
-
-  toast.success({
-    title: "Sucesso",
-    message: "Cliente atualizado com sucesso.",
-  });
-
-  client.value = {
-    name: "",
-    phone: "",
-  };
-
-  getClients();
-
-  loadingAddClient.value = false;
-};
-
-const getVehiclesFromClient = async (clientId) => {
-  try {
-    loading.value = true;
-
-    const { data, error } = await http.get(
-      `/vehicle/get-all-by-client/${clientId}/1`
-    );
-
-    if (error.value) {
-      toast.error({
-        title: "Erro",
-        message: error.value.message || "Erro ao buscar veículos do cliente.",
-      });
-      loading.value = false;
-      return;
-    }
-
-    clientVehicles.value = data.value.content;
-
-    loading.value = false;
-  } catch (error) {
-    console.error("Error fetching vehicles:", error);
-    loading.value = false;
-  }
-};
-
 const resetAddVehicle = () => {
   isAddingVehicle.value = false;
   newVehicle.value = {
@@ -324,39 +256,6 @@ const resetAddVehicle = () => {
     color: "",
     type: 0,
   };
-};
-
-const addNewVehicle = async () => {
-  const obj = {
-    ...newVehicle.value,
-    userId: currentClient.value.id,
-    organizationId: 1, // mocado
-  };
-
-  loadingAddVehicle.value = true;
-
-  const { data, error } = await http.post("/client/add-vehicle", obj);
-
-  if (error.value) {
-    toast.error({
-      title: "Erro",
-      message: error.value.message || "Erro ao adicionar veículo.",
-    });
-
-    loadingAddVehicle.value = false;
-    return;
-  }
-
-  clientVehicles.value.push({ ...data.value.content.vehicle });
-
-  toast.success({
-    title: "Sucesso",
-    message: "Veículo adicionado com sucesso.",
-  });
-
-  resetAddVehicle();
-
-  loadingAddVehicle.value = false;
 };
 
 watch(handleClientDialog, (newValue) => {
@@ -398,6 +297,22 @@ watch(
 //     }
 //   }
 // );
+
+onMounted(() => {
+  const container = document.querySelector(".charts-container");
+
+  if (optionUtilization.value != null) {
+    new ResizeObserver(() => utilizationChart.value?.resize()).observe(
+      container
+    );
+  }
+
+  if (optionRevenueTrend.value != null) {
+    new ResizeObserver(() => revenueTrendChart.value?.resize()).observe(
+      container
+    );
+  }
+});
 
 getClients();
 getLogsFromOrganization();

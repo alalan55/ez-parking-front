@@ -21,7 +21,23 @@ export default defineNuxtConfig({
     "@nuxtjs/tailwindcss",
     "@vueuse/nuxt",
     "nuxt-toast",
+    "nuxt-echarts",
   ],
+
+  echarts: {
+    renderer: "svg",
+    charts: ["BarChart", "LineChart", "PieChart"],
+    components: [
+      "DatasetComponent",
+      "GridComponent",
+      "TooltipComponent",
+      "ToolboxComponent",
+      "LegendComponent",
+      "VisualMapComponent",
+      "DataZoomComponent",
+      "BrushComponent",
+    ],
+  },
 
   css: ["@/assets/css/main.css", "@/assets/css/tailwind.css"],
 });
