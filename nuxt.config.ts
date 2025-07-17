@@ -3,14 +3,41 @@ export default defineNuxtConfig({
   compatibilityDate: "2025-05-15",
   devtools: { enabled: true },
 
+  app: {
+    pageTransition: { name: "page", mode: "out-in" },
+  },
+
+  runtimeConfig: {
+    public: {
+      apiUrl: process.env.NUXT_APP_API_URL || "http://localhost:8080/",
+    },
+  },
+
   modules: [
-    "@nuxt/content",
     "@nuxt/eslint",
     "@nuxt/fonts",
     "@nuxt/icon",
     "@nuxt/image",
     "@nuxtjs/tailwindcss",
+    "@vueuse/nuxt",
+    "nuxt-toast",
+    "nuxt-echarts",
   ],
+
+  echarts: {
+    renderer: "svg",
+    charts: ["BarChart", "LineChart", "PieChart"],
+    components: [
+      "DatasetComponent",
+      "GridComponent",
+      "TooltipComponent",
+      "ToolboxComponent",
+      "LegendComponent",
+      "VisualMapComponent",
+      "DataZoomComponent",
+      "BrushComponent",
+    ],
+  },
 
   css: ["@/assets/css/main.css", "@/assets/css/tailwind.css"],
 });
