@@ -1,88 +1,3 @@
-<template>
-  <div class="h-full p-4 overflow-y-auto">
-    <div class="content max-w-[1100px] mx-auto mt-10">
-      <h1 class="text-3xl font-bold">Métricas</h1>
-      <span class="text-[#4A739C]">
-        Gerencie as métricas da sua organização.
-      </span>
-      <div class="charts-container mt-8 flex gap-4 flex-wrap">
-        <div
-          class="h-[300px] mt-8 w-full border border-[#E0E7F1] rounded-xl p-6 flex flex-col flex-[1_1_300px]"
-        >
-          <div class="flex flex-col gap-1 mb-4">
-            <small> Utilização das vagas </small>
-            <strong class="text-3xl">85%</strong>
-
-            <small class="text-[#4A739C]">Últimos 30 dias</small>
-          </div>
-          <div class="flex-1">
-            <VChart ref="utilizationChart" :option="optionUtilization" />
-          </div>
-        </div>
-
-        <div
-          class="h-[300px] mt-8 w-full border border-[#E0E7F1] rounded-xl p-6 flex flex-col flex-[1_1_300px]"
-        >
-          <div class="flex flex-col gap1">
-            <small> Tendência de Receita </small>
-            <strong class="text-3xl">R$ 1300,00</strong>
-
-            <small class="text-[#4A739C]">Últimos 30 dias</small>
-          </div>
-
-          <div class="flex-1">
-            <VChart ref="revenueTrendChart" :option="optionRevenueTrend" />
-          </div>
-        </div>
-      </div>
-      <div class="mt-8">
-        <div class="flex items-center gap-3">
-          <SharedTInput v-model="search" placeholder="Buscar clientes" />
-
-          <Icon name="tabler:search" size="1.5rem" class="text-[#5c748a]" />
-        </div>
-      </div>
-
-      <section class="mt-8">
-        <SharedTTable :columns="columnsTable" :rows="logs" :loading="loading">
-          <template #cell-entryTime="{ row }">
-            {{
-              row?.entryTime
-                ? new Date(row?.entryTime)?.toLocaleDateString("pt-BR", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                : "N/A"
-            }}
-          </template>
-
-          <template #cell-exitTime="{ row }">
-            {{
-              row.exitTime
-                ? new Date(row?.exitTime)?.toLocaleDateString("pt-BR", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                : "N/A"
-            }}
-          </template>
-
-          <template #cell-collaborator="{ row }">
-            <span> {{ row.collaborator?.name }}</span>
-          </template>
-
-          <template #cell-vehicle="{ row }">
-            <span
-              >{{ vehicleType[row.vehicle.type] }} -
-              {{ row.vehicle.plate?.toUpperCase() }}</span
-            >
-          </template>
-        </SharedTTable>
-      </section>
-    </div>
-  </div>
-</template>
-
 <script setup>
 const http = useApi();
 const toast = useToast();
@@ -100,10 +15,13 @@ const currentModalView = ref(0);
 
 const clients = ref([]);
 const search = ref("");
+
 const client = ref({
   name: "",
   phone: "",
 });
+
+const dailyStay = ref(null);
 
 const isAddingVehicle = ref(false);
 
@@ -217,6 +135,22 @@ const columnsTable = [
   },
 ];
 
+// FUNCTIONS
+const getDailyAverageStay = async () => {
+  const { data, error } = await http.get("/metric/average-daily-stay/1");
+
+  if (error.value) {
+    console.error("Error fetching daily average stay:", error.value);
+    toast.error({
+      title: "Falha",
+      description: "Não foi possível buscar a média de permanência diária.",
+    });
+    return;
+  }
+
+  dailyStay.value = data.value.content;
+};
+
 const getLogsFromOrganization = async () => {
   try {
     const { data } = await http.get("/parking-log/1");
@@ -316,7 +250,127 @@ onMounted(() => {
 
 getClients();
 getLogsFromOrganization();
+getDailyAverageStay();
 </script>
+
+<template>
+  <div class="h-full p-4 overflow-y-auto">
+    <div class="content max-w-[1100px] mx-auto mt-10">
+      <h1 class="text-3xl font-bold">Métricas</h1>
+      <span class="text-[#4A739C]">
+        Gerencie as métricas da sua organização.
+      </span>
+
+      <section class="grid sm:grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+        <div class="bg-[#ebedf2] p-6 flex flex-col rounded-lg">
+          <small>Taxa de ocupação</small>
+          <strong class="text-2xl">85% </strong>
+        </div>
+
+        <div class="bg-[#ebedf2] p-6 flex flex-col rounded-lg">
+          <small>Receita total</small>
+          <strong class="text-2xl">
+            {{
+              dailyStay?.totalRevenue
+                ? dailyStay.totalRevenue.toLocaleString("pt-BR", {
+                    style: "currency",
+                    currency: "BRL",
+                  })
+                : "R$ 0,00"
+            }}
+          </strong>
+        </div>
+
+        <div class="bg-[#ebedf2] p-6 flex flex-col rounded-lg">
+          <small>Média de permanência diária</small>
+          <strong class="text-2xl">{{ dailyStay?.averageStay || "0h" }}</strong>
+        </div>
+      </section>
+
+      <section class="charts-container mt-8 flex gap-4 flex-wrap">
+        <div class="flex-[1_1_300px]">
+          <strong>Utilização das vagas</strong>
+          <div
+            class="h-[300px] mt-4 w-full border border-[#E0E7F1] rounded-xl p-6 flex flex-col w-full"
+          >
+            <div class="flex flex-col gap-1 mb-4">
+              <small> Utilização das vagas </small>
+              <strong class="text-3xl">85%</strong>
+
+              <small class="text-[#4A739C]">Últimos 30 dias</small>
+            </div>
+            <div class="flex-1">
+              <VChart ref="utilizationChart" :option="optionUtilization" />
+            </div>
+          </div>
+        </div>
+
+        <div class="flex-[1_1_300px]">
+          <strong>Tendência de receita</strong>
+          <div
+            class="h-[300px] mt-4 w-full border border-[#E0E7F1] rounded-xl p-6 flex flex-col w-full"
+          >
+            <div class="flex flex-col gap1">
+              <small> Tendência de Receita </small>
+              <strong class="text-3xl">R$ 1300,00</strong>
+
+              <small class="text-[#4A739C]">Últimos 30 dias</small>
+            </div>
+
+            <div class="flex-1">
+              <VChart ref="revenueTrendChart" :option="optionRevenueTrend" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="mt-8">
+        <div class="flex items-center gap-3">
+          <SharedTInput v-model="search" placeholder="Buscar clientes" />
+
+          <Icon name="tabler:search" size="1.5rem" class="text-[#5c748a]" />
+        </div>
+      </section>
+
+      <section class="mt-8">
+        <SharedTTable :columns="columnsTable" :rows="logs" :loading="loading">
+          <template #cell-entryTime="{ row }">
+            {{
+              row?.entryTime
+                ? new Date(row?.entryTime)?.toLocaleDateString("pt-BR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "N/A"
+            }}
+          </template>
+
+          <template #cell-exitTime="{ row }">
+            {{
+              row.exitTime
+                ? new Date(row?.exitTime)?.toLocaleDateString("pt-BR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "N/A"
+            }}
+          </template>
+
+          <template #cell-collaborator="{ row }">
+            <span> {{ row.collaborator?.name }}</span>
+          </template>
+
+          <template #cell-vehicle="{ row }">
+            <span
+              >{{ vehicleType[row.vehicle.type] }} -
+              {{ row.vehicle.plate?.toUpperCase() }}</span
+            >
+          </template>
+        </SharedTTable>
+      </section>
+    </div>
+  </div>
+</template>
 
 <style scoped lang="postcss">
 .header {
