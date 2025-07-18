@@ -264,11 +264,13 @@ getDailyAverageStay();
       <section class="grid sm:grid-cols-1 md:grid-cols-3 gap-4 mt-8">
         <div class="bg-[#ebedf2] p-6 flex flex-col rounded-lg">
           <small>Taxa de ocupação</small>
-          <strong class="text-2xl">85% </strong>
+          <strong class="text-2xl">
+            {{ dailyStay?.occupancyRate || 0 }}%
+          </strong>
         </div>
 
         <div class="bg-[#ebedf2] p-6 flex flex-col rounded-lg">
-          <small>Receita total</small>
+          <small>Receita total diária</small>
           <strong class="text-2xl">
             {{
               dailyStay?.totalRevenue
