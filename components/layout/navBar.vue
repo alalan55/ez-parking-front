@@ -126,6 +126,18 @@ watch(
 .menu-hamburguer {
   display: none;
 }
+.router-link-exact-active{
+  position: relative;
+}
+.router-link-exact-active::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  background-color: #4a739c;
+  bottom: -2px;
+  left: 0;
+}
 
 @media (max-width: 768px) {
   .menu {
