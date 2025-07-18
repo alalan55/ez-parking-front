@@ -34,20 +34,22 @@ const newVehicle = ref({
   type: 0, // Default to Carro
 });
 
-const optionUtilization = ref({
+const utilizationVacancy = ref([]);
+
+const optionUtilization = computed(() => ({
   title: { text: "Utilização do Espaço (Seg-Sex)" },
   tooltip: {},
   legend: { data: ["Vagas Ocupadas"] },
   xAxis: {
     type: "category",
-    data: ["Seg", "Ter", "Qua", "Qui", "Sex"],
+    data: utilizationVacancy.value.map((e) => e.weekday),
   },
   yAxis: { type: "value", name: "Vagas" },
   series: [
     {
       name: "Vagas Ocupadas",
       type: "bar",
-      data: [32, 45, 38, 41, 50], // mock: vagas ocupadas por dia
+      data: utilizationVacancy.value.map((e) => e.count),
       itemStyle: { color: "#4A739C" },
       barMaxWidth: 40,
     },
@@ -59,7 +61,7 @@ const optionUtilization = ref({
     bottom: 0,
     containLabel: true,
   },
-});
+}));
 
 const optionRevenueTrend = ref({
   title: { text: "Tendência de Receita (Seg-Sex)" },
@@ -135,7 +137,38 @@ const columnsTable = [
   },
 ];
 
+onMounted(() => {
+  const container = document.querySelector(".charts-container");
+
+  if (optionUtilization.value != null) {
+    new ResizeObserver(() => utilizationChart.value?.resize()).observe(
+      container
+    );
+  }
+
+  if (optionRevenueTrend.value != null) {
+    new ResizeObserver(() => revenueTrendChart.value?.resize()).observe(
+      container
+    );
+  }
+});
+
 // FUNCTIONS
+const getUtilizationGraph = async () => {
+  const { data, error } = await http.get("/metric/vacancy-usage-graph/1");
+
+  if (error.value) {
+    console.error("Error fetching utilization graph:", error.value);
+    toast.error({
+      title: "Falha",
+      description: "Não foi possível buscar o gráfico de utilização.",
+    });
+    return;
+  }
+
+  utilizationVacancy.value = data.value.content;
+};
+
 const getDailyAverageStay = async () => {
   const { data, error } = await http.get("/metric/average-daily-stay/1");
 
@@ -192,6 +225,17 @@ const resetAddVehicle = () => {
   };
 };
 
+const getInitialDatas = () => {
+  Promise.all([
+    getClients(),
+    getLogsFromOrganization(),
+    getDailyAverageStay(),
+    getUtilizationGraph(),
+  ]).catch((error) => {
+    console.error("Error fetching initial data:", error);
+  });
+};
+
 watch(handleClientDialog, (newValue) => {
   if (!newValue) {
     isEditing.value = false;
@@ -214,43 +258,8 @@ watch(
     if (nv === 1) resetAddVehicle();
   }
 );
-// watch(
-//   () => [handleClientDialog.value, removeDialog.value],
-//   (newValue) => {
-//     console.log("Dialog state changed:", newValue);
-//     if (newValue.some((v) => v === false)) {
-//       console.log('entrei')
 
-//       currentClient.value = null;
-//       isEditing.value = false;
-
-//       client.value = {
-//         name: "",
-//         phone: "",
-//       };
-//     }
-//   }
-// );
-
-onMounted(() => {
-  const container = document.querySelector(".charts-container");
-
-  if (optionUtilization.value != null) {
-    new ResizeObserver(() => utilizationChart.value?.resize()).observe(
-      container
-    );
-  }
-
-  if (optionRevenueTrend.value != null) {
-    new ResizeObserver(() => revenueTrendChart.value?.resize()).observe(
-      container
-    );
-  }
-});
-
-getClients();
-getLogsFromOrganization();
-getDailyAverageStay();
+getInitialDatas();
 </script>
 
 <template>

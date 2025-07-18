@@ -28,6 +28,7 @@
                 v-model="organization.id"
                 :readonly="true"
                 placeholder="ID"
+                type="number"
               />
             </div>
 
