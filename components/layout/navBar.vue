@@ -47,14 +47,20 @@
           <template v-for="link in links" :key="link.name">
             <NuxtLink
               :to="link.path"
-              class="link text-[#000] hover:text-[#4f4f4f] transition-colors duration-200 font-medium hover:font-semibold sm:hidden md:inline-block"
+              class="link text-[#000] hover:text-[#4f4f4f] transition-colors duration-200 font-medium hover:font-semibold"
+              :class="{
+                hidden: width < 768,
+              }"
             >
               {{ link.name }}
             </NuxtLink>
 
             <NuxtLink
               :to="link.path"
-              class="link text-[#000] hover:text-[#4f4f4f] transition-colors duration-200 font-medium hover:font-semibold sm:inline-block md:hidden"
+              class="link text-[#000] hover:text-[#4f4f4f] transition-colors duration-200 font-medium hover:font-semibold"
+              :class="{
+                hidden: width >= 768,
+              }"
               @click="handleClickmenu"
             >
               {{ link.name }}
@@ -82,8 +88,12 @@
 </template>
 
 <script setup>
+import { useWindowSize } from "@vueuse/core";
+
 const menuVisible = ref(false);
 const menu = ref(null);
+
+const { width } = useWindowSize();
 
 const links = [
   { name: "Home", path: "/internal" },
