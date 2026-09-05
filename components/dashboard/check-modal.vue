@@ -1,78 +1,67 @@
 <template>
   <section class="space-y-6">
-    <h2 class="text-2xl font-bold mb-4">
-      {{ isCheckin ? "Check-in" : "Check-out" }}
-    </h2>
-
-    <div class="rounded-xl p-6 flex-1">
-      <div class="grid sm:grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label class="block text-xs font-medium text-[#5c748a] mb-1">
-            Placa do veículo
-          </label>
-          <SharedTInput
-            v-model="information.vehicle.plate"
-            :readonly="!isCheckin"
-            placeholder="Placa"
-            type="text"
-            @input="debounceSearch"
-          />
-        </div>
-
-        <div>
-          <label class="block text-xs font-medium text-[#5c748a] mb-1"
-            >Clientes</label
-          >
-          <SharedTSelect
-            v-model="information.clientId"
-            :options="clients"
-            placeholder="Cliente"
-            type="text"
-          />
-        </div>
-
-        <div>
-          <label class="block text-xs font-medium text-[#5c748a] mb-1"
-            >Hora entrada</label
-          >
-          <SharedTInput
-            v-model="information.entryTime"
-            :readonly="!isCheckin"
-            placeholder="Hora entrada"
-            type="time"
-          />
-        </div>
-        <div v-if="!isCheckin">
-          <label class="block text-xs font-medium text-[#5c748a] mb-1"
-            >Hora saída</label
-          >
-          <SharedTInput
-            v-model="information.exitTime"
-            placeholder="Hora saída"
-            type="time"
-          />
-        </div>
-      </div>
-      <div class="mt-4">
-        <label class="block text-xs font-medium text-[#5c748a] mb-1"
-          >Observação</label
-        >
-        <SharedTInput
-          v-model="information.observation"
-          :readonly="!isCheckin"
-          placeholder="Observação"
-          type="text"
-        />
-      </div>
+    <div>
+      <h2 class="font-display text-xl font-bold text-ink">
+        {{ isCheckin ? "Check-in" : "Check-out" }}
+      </h2>
+      <p class="text-sm text-ink-muted mt-0.5">
+        {{
+          isCheckin
+            ? "Registre a entrada de um veículo em uma vaga disponível."
+            : "Confirme a saída para liberar a vaga."
+        }}
+      </p>
     </div>
 
-    <div class="flex items-center justify-end">
-      <SharedTButton
-        class="max-w-[130px]"
-        type="primary"
+    <div class="grid sm:grid-cols-1 md:grid-cols-3 gap-4">
+      <UFormField label="Placa do veículo">
+        <UInput
+          v-model="information.vehicle.plate"
+          :disabled="!isCheckin"
+          placeholder="ABC1D23"
+          class="w-full"
+          @input="debounceSearch"
+        />
+      </UFormField>
+
+      <UFormField label="Cliente">
+        <USelect
+          v-model="information.clientId"
+          :items="clients"
+          placeholder="Selecionar cliente"
+          class="w-full"
+        />
+      </UFormField>
+
+      <UFormField label="Hora de entrada">
+        <UInput
+          v-model="information.entryTime"
+          :disabled="!isCheckin"
+          type="time"
+          class="w-full"
+        />
+      </UFormField>
+
+      <UFormField v-if="!isCheckin" label="Hora de saída">
+        <UInput v-model="information.exitTime" type="time" class="w-full" />
+      </UFormField>
+    </div>
+
+    <UFormField label="Observação">
+      <UInput
+        v-model="information.observation"
+        :disabled="!isCheckin"
+        placeholder="Observações adicionais (opcional)"
+        class="w-full"
+      />
+    </UFormField>
+
+    <div class="flex items-center justify-end gap-2 pt-4 border-t border-line">
+      <UButton
+        color="neutral"
         :loading="loading"
-        :disabled="loading || !information.vehicle.plate"
-        :title="isCheckin ? 'Check-in' : 'Check-out'"
+        :disabled="isDisabled"
+        :label="isCheckin ? 'Confirmar check-in' : 'Confirmar check-out'"
         @click="isCheckin ? checkin() : checkout()"
       />
     </div>
@@ -104,6 +93,14 @@ const debounceSearch = useDebounceFn(() => {
 
 const isCheckin = computed(() => !props.infoProps);
 
+const isDisabled = computed(
+  () =>
+    loading.value ||
+    (isCheckin.value &&
+      (!information.value.vehicle.plate ||
+        information.value.vehicle.plate.length < 7))
+);
+
 const searchClientsByVehicle = async () => {
   const plate = information.value.vehicle.plate;
   if (!plate) return;
@@ -124,55 +121,94 @@ const searchClientsByVehicle = async () => {
     console.error("Error fetching clients by vehicle:", error);
     toast.error({
       title: "Falha",
-      description: "Não foi possível buscar os clientes para este veículo.",
+      message: "Não foi possível buscar os clientes para este veículo.",
     });
+    return;
   }
 
-  clients.value = data.value.content.map((e) => ({
+  clients.value = (data.value.content || []).map((e) => ({
     ...e,
     label: e.name,
     value: e.id,
   }));
 };
 
+const currentTime = () =>
+  new Date().toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
 const fillLocalInfo = () => {
   if (props.infoProps) {
     information.value = { ...props.infoProps };
-    information.value.entryTime = new Date(
-      props.infoProps?.activeVacancyLog?.createdAt
-    ).toLocaleTimeString("pt-BR", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    information.value.entryTime = props.infoProps?.activeVacancyLog?.entryTime
+      ? new Date(
+          props.infoProps.activeVacancyLog.entryTime
+        ).toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "";
+    information.value.exitTime = currentTime();
+  } else {
+    information.value.entryTime = currentTime();
   }
 };
 
+const timeToIso = (time) => {
+  const [hours, minutes] = time.split(":");
+  const today = new Date();
+  today.setHours(Number(hours), Number(minutes), 0, 0);
+  return today.toISOString();
+};
+
+const extractErrorMessage = (error, fallback) => {
+  const message = error?.message ?? error;
+  if (Array.isArray(message)) return message.join(" ");
+  if (typeof message === "string" && message) return message;
+  return fallback;
+};
+
 const checkin = async () => {
+  if (!information.value.vehicle.plate || information.value.vehicle.plate.length < 7) {
+    toast.warning({
+      title: "Atenção",
+      message: "Informe uma placa válida (mínimo 7 caracteres).",
+    });
+    return;
+  }
+
+  if (!information.value.entryTime) {
+    toast.warning({
+      title: "Atenção",
+      message: "Por favor, informe a hora de entrada.",
+    });
+    return;
+  }
+
   loading.value = true;
+
   const model = {
-    vehiclePlate: information.value.vehicle.plate,
-    clientId: information.value.clientId,
-    entryTime: information.value.entryTime,
+    vehiclePlate: information.value.vehicle.plate.toUpperCase(),
+    entryTime: timeToIso(information.value.entryTime),
     observation: information.value.observation,
     collaboratorId: 1, // Assuming a static collaborator ID for now
     organizationId: 1, // Assuming a static organization ID for now
   };
 
-  // parse entryTime to ISO string and format to today
-  const [hours, minutes] = information.value.entryTime.split(":");
-  const today = new Date();
+  const { error } = await http.post("/parking-log/checkin", model);
 
-  today.setHours(Number(hours), Number(minutes), 0, 0);
-  model.entryTime = today.toISOString();
-
-  const { error } = await http.post("/dash/checkin", model);
+  loading.value = false;
 
   if (error.value) {
-    loading.value = false;
-    console.error("Error during check-in:", error);
+    console.error("Error during check-in:", error.value);
     toast.error({
       title: "Falha",
-      description: "Não foi possível realizar o check-in.",
+      message: extractErrorMessage(
+        error.value,
+        "Não foi possível realizar o check-in."
+      ),
     });
     return;
   }
@@ -180,8 +216,6 @@ const checkin = async () => {
   toast.success({
     title: "Check-in realizado com sucesso!",
   });
-
-  loading.value = false;
 
   emit("update");
 };
@@ -198,26 +232,22 @@ const checkout = async () => {
   loading.value = true;
 
   const model = {
-    vacancyId: information.value.id,
     logId: information.value.parkingLogId,
-    exitTime: information.value.exitTime,
-    collaboratorId: 1, // Assuming a static collaborator ID for now
-    organizationId: 1, // Assuming a static organization ID for now
+    exitTime: timeToIso(information.value.exitTime),
   };
 
-  const [hours, minutes] = information.value.exitTime.split(":");
-  const today = new Date();
-  today.setHours(Number(hours), Number(minutes), 0, 0);
-  model.exitTime = today.toISOString();
+  const { error } = await http.post("/parking-log/checkout", model);
 
-  const { error } = await http.post("/dash/checkout", model);
+  loading.value = false;
 
   if (error.value) {
-    loading.value = false;
     console.error("Error during check-out:", error.value);
     toast.error({
       title: "Falha",
-      message: "Não foi possível realizar o check-out.",
+      message: extractErrorMessage(
+        error.value,
+        "Não foi possível realizar o check-out."
+      ),
     });
     return;
   }
@@ -226,23 +256,8 @@ const checkout = async () => {
     title: "Check-out realizado com sucesso!",
   });
 
-  loading.value = false;
   emit("update");
 };
 
 fillLocalInfo();
 </script>
-
-<style lang="postcss" scoped>
-.title-section {
-  &::after {
-    content: "";
-    position: absolute;
-    width: 100%;
-    height: 2px;
-    background-color: #e3e3e3;
-    bottom: -4px;
-    left: 0;
-  }
-}
-</style>

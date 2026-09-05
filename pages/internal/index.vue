@@ -1,124 +1,249 @@
 <template>
-  <div class="h-full p-4 overflow-y-auto">
-    <div class="content max-w-[1100px] mx-auto mt-10">
-      <h1 class="text-3xl font-bold">Dashboard</h1>
-
-      <span class="text-[#4A739C]">
-        Visualize as informações gerais do estacionamento.
-      </span>
-
-      <section class="grid sm:grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-        <div
-          class="border border-[#e3e3e3] rounded-lg p-4 hover:shadow-md cursor-pointer transition-all transform animate-fade-in duration-200"
-        >
-          <p class="text-sm flex items-center gap-1">
-            Ocupação <Icon name="iconoir:car" size="1.1rem" />
-          </p>
-          <span class="font-bold text-lg">
-            {{ occupancy?.occupiedPercentage || 0 }}%
-          </span>
+  <div class="min-h-full lg:h-full lg:overflow-hidden flex flex-col p-4 md:p-6">
+    <div class="w-full max-w-[1400px] mx-auto flex flex-col flex-1 lg:min-h-0 gap-4 md:gap-5">
+      <div class="shrink-0 flex items-end justify-between gap-3">
+        <div>
+          <p class="text-sm font-medium text-ink-muted">{{ greeting }}</p>
+          <h1 class="font-display text-2xl md:text-3xl font-bold text-ink tracking-tight mt-0.5">
+            Vagas
+          </h1>
         </div>
-
-        <div
-          class="border border-[#e3e3e3] rounded-lg p-4 hover:shadow-md cursor-pointer transition-all transform animate-fade-in duration-200"
-        >
-          <p class="text-sm flex items-center gap-1">
-            Espaços disponíveis <Icon name="mdi:garage-open" size="1.1rem" />
-          </p>
-          <span class="font-bold text-lg">{{ occupancy?.available || 0 }}</span>
-        </div>
-
-        <div
-          class="border border-[#e3e3e3] rounded-lg p-4 hover:shadow-md cursor-pointer transition-all transform animate-fade-in duration-200"
-        >
-          <p class="text-sm flex items-center gap-1">
-            Receita total <Icon name="tabler:coin" size="1.1rem" />
-          </p>
-          <span class="font-bold text-lg">R$ 12,500</span>
-        </div>
-      </section>
-
-      <div class="mt-8">
-        <div class="flex items-center gap-3 max-w-[395px]">
-          <SharedTInput
-            v-model="search"
-            placeholder="Pesquisar por placa"
-            @input="debouncedSearch"
-          />
-
-          <Icon name="tabler:search" size="1.5rem" class="text-[#5c748a]" />
-        </div>
+        <p class="text-sm text-ink-faint capitalize hidden sm:block">{{ formattedToday }}</p>
       </div>
 
-      <section class="mt-8">
-        <SharedTTable
-          :columns="columnsTable"
-          :rows="vacancies"
-          :loading="loading"
+      <section class="shrink-0">
+        <div
+          class="flex flex-wrap items-stretch bg-surface border border-line rounded-2xl divide-x divide-line shadow-sm overflow-hidden"
         >
-          <template #cell-vacancy="{ row }"> # {{ row?.id }} </template>
-
-          <template #cell-status="{ row }">
-            <div
-              class="rounded-lg px-2 py-1 flex items-center justify-center"
-              :class="{
-                'bg-[#d4f0c1]': row?.status == 0,
-                'bg-[#f8d7da]': row?.status == 1,
-              }"
+          <div
+            v-for="stat in stats"
+            :key="stat.label"
+            class="flex items-center gap-3 px-4 sm:px-5 py-3.5 flex-1 min-w-[45%] sm:min-w-[160px]"
+          >
+            <span
+              class="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-white"
+              :class="stat.badgeClass"
             >
-              <span class="font-bold text-sm text-[#0d151c]">
-                {{ row?.status == 0 ? "Disponível" : "Ocupado" }}
-              </span>
+              <Icon :name="stat.icon" size="1.15rem" />
+            </span>
+            <div class="min-w-0">
+              <p class="text-xs text-ink-muted font-medium truncate">{{ stat.label }}</p>
+              <p class="text-lg font-bold text-ink leading-tight truncate">
+                {{ stat.value }}
+              </p>
             </div>
-          </template>
-
-          <template #cell-vehicle="{ row }">
-            {{ row?.vehicle?.plate?.toUpperCase() }}
-          </template>
-
-          <template #cell-customer="{ row }">
-            {{
-              row?.vehicle?.clients.length > 0
-                ? row?.vehicle?.clients[0]?.name
-                : "N/A"
-            }}
-          </template>
-
-          <template #cell-arrival="{ row }">
-            {{
-              row?.activeVacancyLog?.entryTime
-                ? new Date(row?.activeVacancyLog?.entryTime).toLocaleTimeString(
-                    "pt-BR",
-                    {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    }
-                  )
-                : "N/A"
-            }}
-          </template>
-
-          <template #cell-actions="{ row }">
-            <div
-              v-show="row.status === 1"
-              class="flex items-center justify-center"
-            >
-              <Icon
-                name="tabler:pencil"
-                size="1.3rem"
-                class="cursor-pointer"
-                @click="updateVacancy(row)"
-              />
-            </div>
-          </template>
-        </SharedTTable>
+          </div>
+        </div>
       </section>
 
-      <SharedTModal
-        v-model="infoDialog"
-        :show-close-button="false"
-        width="max-w-4xl"
+      <div class="shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+        <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 border border-line rounded-full p-1">
+          <UButton
+            v-for="filter in statusFilters"
+            :key="filter.value"
+            size="sm"
+            color="neutral"
+            :variant="statusFilter === filter.value ? 'solid' : 'ghost'"
+            class="rounded-full flex-1 justify-center"
+            @click="statusFilter = filter.value"
+          >
+            {{ filter.label }}
+          </UButton>
+        </div>
+
+        <UInput
+          v-model="search"
+          icon="i-tabler-search"
+          placeholder="Pesquisar por placa"
+          class="w-full sm:w-[220px]"
+          @input="debouncedSearch"
+        />
+      </div>
+
+      <div
+        class="flex-1 lg:min-h-0 pb-20 lg:pb-0 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4 md:gap-5"
       >
+        <section class="flex flex-col lg:min-h-0">
+          <h2 class="shrink-0 text-sm font-semibold text-ink-muted mb-2">
+            Registros
+            <span class="text-ink-faint font-normal">({{ filteredVacancies.length }})</span>
+          </h2>
+
+          <div
+            class="h-full bg-surface border border-line rounded-2xl shadow-sm lg:overflow-hidden"
+          >
+            <UTable
+              :data="filteredVacancies"
+              :columns="columns"
+              :loading="loading"
+              sticky="header"
+              class="h-full lg:overflow-y-auto"
+              :ui="{ thead: 'bg-slate-50 dark:bg-slate-800/60' }"
+            >
+              <template #id-cell="{ row }">
+                <span
+                  class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-ink text-xs font-bold"
+                >
+                  {{ row.original.id }}
+                </span>
+              </template>
+
+              <template #status-cell="{ row }">
+                <UBadge
+                  :color="row.original.status == 0 ? 'success' : 'error'"
+                  variant="subtle"
+                  class="gap-1.5"
+                >
+                  <span
+                    class="w-1.5 h-1.5 rounded-full"
+                    :class="row.original.status == 0 ? 'bg-emerald-500' : 'bg-rose-500'"
+                  ></span>
+                  {{ row.original.status == 0 ? "Disponível" : "Ocupado" }}
+                </UBadge>
+              </template>
+
+              <template #vehicle-cell="{ row }">
+                <UBadge
+                  v-if="row.original.vehicle?.plate"
+                  color="neutral"
+                  variant="subtle"
+                  class="font-mono"
+                >
+                  {{ row.original.vehicle.plate.toUpperCase() }}
+                </UBadge>
+                <span v-else class="text-ink-faint">—</span>
+              </template>
+
+              <template #customer-cell="{ row }">
+                <span
+                  :class="{
+                    'text-ink-faint': !row.original.vehicle?.clients?.length,
+                  }"
+                >
+                  {{
+                    row.original.vehicle?.clients?.length > 0
+                      ? row.original.vehicle.clients[0]?.name
+                      : "—"
+                  }}
+                </span>
+              </template>
+
+              <template #arrival-cell="{ row }">
+                <span
+                  :class="{
+                    'text-ink-faint': !row.original.activeVacancyLog?.entryTime,
+                  }"
+                >
+                  {{
+                    row.original.activeVacancyLog?.entryTime
+                      ? new Date(
+                          row.original.activeVacancyLog.entryTime
+                        ).toLocaleTimeString("pt-BR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "—"
+                  }}
+                </span>
+              </template>
+
+              <template #actions-cell="{ row }">
+                <div v-show="row.original.status === 1" class="flex items-center justify-center">
+                  <UButton
+                    icon="i-tabler-pencil"
+                    color="neutral"
+                    variant="ghost"
+                    size="sm"
+                    square
+                    @click="updateVacancy(row.original)"
+                  />
+                </div>
+              </template>
+
+              <template #empty>
+                <div class="flex flex-col items-center gap-2 text-ink-muted py-4">
+                  <Icon name="tabler:car-off" size="1.75rem" class="text-ink-faint" />
+                  Nenhuma vaga encontrada.
+                </div>
+              </template>
+            </UTable>
+          </div>
+        </section>
+
+        <section class="flex flex-col lg:min-h-0">
+          <div class="shrink-0 flex items-center justify-between mb-2">
+            <h2 class="text-sm font-semibold text-ink-muted">Mapa de vagas</h2>
+            <div class="flex items-center gap-3 text-xs font-medium text-ink-muted">
+              <span class="flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                Livre
+              </span>
+              <span class="flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                Ocupada
+              </span>
+            </div>
+          </div>
+
+          <div
+            class="lg:max-h-full lg:overflow-y-auto bg-surface border border-line rounded-2xl p-4 shadow-sm"
+          >
+            <div
+              v-if="!loading && filteredVacancies.length"
+              class="grid grid-cols-4 xs:grid-cols-5 gap-2.5"
+            >
+              <button
+                v-for="v in filteredVacancies"
+                :key="v.id"
+                type="button"
+                class="relative aspect-square rounded-xl border flex flex-col items-center justify-center gap-0.5 p-1.5 transition-all duration-200"
+                :class="
+                  v.status === 1
+                    ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900 shadow-sm shadow-rose-500/10 hover:shadow-md hover:shadow-rose-500/15 hover:-translate-y-0.5 cursor-pointer'
+                    : 'bg-surface border-line hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-sm cursor-default'
+                "
+                @click="v.status === 1 && updateVacancy(v)"
+              >
+                <span
+                  class="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full"
+                  :class="v.status === 1 ? 'bg-rose-500' : 'bg-emerald-500'"
+                ></span>
+                <span
+                  class="text-sm font-bold"
+                  :class="v.status === 1 ? 'text-rose-700 dark:text-rose-300' : 'text-ink'"
+                >
+                  {{ v.id }}
+                </span>
+                <span
+                  v-if="v.status === 1 && v.vehicle?.plate"
+                  class="font-mono text-[9px] font-semibold text-rose-600 dark:text-rose-400 truncate max-w-full"
+                >
+                  {{ v.vehicle.plate.toUpperCase() }}
+                </span>
+                <span v-else-if="v.status !== 1" class="text-[9px] text-ink-faint">
+                  Livre
+                </span>
+              </button>
+            </div>
+
+            <div
+              v-else-if="!loading"
+              class="flex flex-col items-center gap-2 text-ink-muted py-8"
+            >
+              <Icon name="tabler:car-off" size="1.75rem" class="text-ink-faint" />
+              Nenhuma vaga encontrada.
+            </div>
+
+            <div v-else class="flex justify-center py-8">
+              <SharedTSpinner size="6" border="2" />
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <UModal v-model:open="infoDialog" :ui="{ content: 'max-w-2xl w-full' }">
+      <template #body>
         <DashboardCheckModal
           :info-props="currentVacancy"
           @update="
@@ -126,19 +251,18 @@
             getVacanciesLogs();
           "
         />
-      </SharedTModal>
+      </template>
+    </UModal>
 
-      <button
-        class="rounded-full fixed bottom-4 right-4 md:bottom-14 md:right-14 flex items-center justify-center p-3 bg-[#000] text-white shadow-lg hover:bg-[#2e2e2e] transition-colors duration-200 cursor-pointer"
-        @click="infoDialog = true"
-      >
-        <Icon
-          name="tabler:plus"
-          size="1.5rem"
-          class="bg-[#fff] text-white rounded-full p-3 shadow-lg transition-colors duration-200"
-        />
-      </button>
-    </div>
+    <UButton
+      class="fixed bottom-5 right-5 md:bottom-10 md:right-10 rounded-full shadow-lg shadow-slate-900/15"
+      color="neutral"
+      size="xl"
+      icon="i-tabler-plus"
+      @click="infoDialog = true"
+    >
+      <span class="hidden sm:inline">Novo check-in</span>
+    </UButton>
   </div>
 </template>
 
@@ -150,50 +274,84 @@ const http = useApi();
 const loading = ref(false);
 const infoDialog = ref(false);
 
-const columnsTable = [
-  {
-    key: "vacancy",
-    label: "Vaga",
-    thClass: "w-20",
-    tdClass: "text-[#0d151c]",
-  },
-  { key: "status", label: "Status", thClass: "w-40", tdClass: "" },
-  {
-    key: "vehicle",
-    label: "Veículo",
-    thClass: "w-30",
-    tdClass: "text-[#49749c]",
-  },
-  {
-    key: "customer",
-    label: "Cliente",
-    thClass: "w-30",
-    tdClass: "text-[#49749c]",
-  },
-  {
-    key: "arrival",
-    label: "Entrada",
-    thClass: "w-40",
-    tdClass: "text-[#49749c]",
-  },
-  // {
-  //   key: "departure",
-  //   label: "Partida",
-  //   thClass: "w-40",
-  //   tdClass: "text-[#49749c]",
-  // },
-  {
-    key: "actions",
-    label: "Actions",
-    thClass: "w-20",
-    tdClass: "text-[#49749c]",
-  },
+const columns = [
+  { accessorKey: "id", header: "Vaga" },
+  { accessorKey: "status", header: "Status" },
+  { accessorKey: "vehicle", header: "Veículo" },
+  { id: "customer", header: "Cliente" },
+  { id: "arrival", header: "Entrada" },
+  { id: "actions", header: "Ações" },
 ];
 
 const vacancies = ref([]);
 const occupancy = ref({});
 const currentVacancy = ref(null);
 const search = ref("");
+const statusFilter = ref("all");
+
+const statusFilters = [
+  { value: "all", label: "Todas" },
+  { value: "available", label: "Disponíveis" },
+  { value: "occupied", label: "Ocupadas" },
+];
+
+const greeting = computed(() => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Bom dia";
+  if (hour < 18) return "Boa tarde";
+  return "Boa noite";
+});
+
+const formattedToday = computed(() =>
+  new Date().toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+  })
+);
+
+const filteredVacancies = computed(() => {
+  if (statusFilter.value === "available")
+    return vacancies.value.filter((v) => v.status === 0);
+  if (statusFilter.value === "occupied")
+    return vacancies.value.filter((v) => v.status === 1);
+  return vacancies.value;
+});
+
+const formattedRevenue = computed(() =>
+  (12500).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    maximumFractionDigits: 0,
+  })
+);
+
+const stats = computed(() => [
+  {
+    label: "Ocupação",
+    value: `${Math.round(occupancy.value?.occupiedPercentage || 0)}%`,
+    icon: "iconoir:car",
+    badgeClass: "bg-gradient-to-br from-violet-500 to-violet-600 shadow-sm shadow-violet-500/30",
+  },
+  {
+    label: "Disponíveis",
+    value: occupancy.value?.available ?? 0,
+    icon: "mdi:garage-open",
+    badgeClass: "bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-sm shadow-emerald-500/30",
+  },
+  {
+    label: "Total de vagas",
+    value: occupancy.value?.organizationVacancies ?? 0,
+    icon: "tabler:layout-grid",
+    badgeClass: "bg-gradient-to-br from-slate-500 to-slate-600 shadow-sm shadow-slate-500/30",
+  },
+  {
+    label: "Receita total",
+    value: formattedRevenue.value,
+    icon: "tabler:coin",
+    badgeClass: "bg-gradient-to-br from-amber-500 to-amber-600 shadow-sm shadow-amber-500/30",
+  },
+]);
 
 const debouncedSearch = useDebounceFn(() => {
   getVacanciesLogs();
@@ -228,9 +386,9 @@ const getVacanciesLogs = async () => {
 
 const updateVacancy = (row) => {
   if (row.status === 0) currentVacancy.value = null;
-  else{
-     currentVacancy.value = row;
-     currentVacancy.value.observation = row.activeVacancyLog?.observation || "";
+  else {
+    currentVacancy.value = row;
+    currentVacancy.value.observation = row.activeVacancyLog?.observation || "";
   }
 
   infoDialog.value = true;

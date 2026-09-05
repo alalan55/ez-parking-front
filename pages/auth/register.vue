@@ -1,162 +1,119 @@
 <template>
-  <div
-    class="wrapper min-h-[calc(100dvh - 70px)] flex flex-col items-center sm:justify-start md:justify-center bg-[#fafafa] p-4 h-full"
-  >
-    <section class="text-center">
-      <h1 class="text-2xl font-bold">Criar conta</h1>
+  <div class="w-full" :class="currentOption === null ? 'max-w-[560px]' : 'max-w-[720px]'">
+    <div class="text-center mb-8">
+      <h1 class="font-display text-2xl font-bold text-ink">Criar conta</h1>
+      <p class="text-sm text-ink-muted mt-1">
+        Selecione uma das opções abaixo para se registrar.
+      </p>
+    </div>
 
-      <span class="text-sm text-[#5c748a]">
-        Selecione uma das opções abaixo para se registrar:
-      </span>
-    </section>
-
-    <section
-      v-if="currentOption === null"
-      ref="optionsSection"
-      class="flex items-center justify-center gap-6 mt-14 flex-wrap max-w-[800px]"
-    >
-      <div
-        v-for="option in options"
-        :key="option.value"
-        class="bg-[#f5f5f5] hover:bg-[#e8e8e8] rounded-lg p-4 flex-[1_1_300px] text-center transition-all cursor-pointer"
-        @click="currentOption = option.value"
+    <div ref="optionsSection">
+      <section
+        v-if="currentOption === null"
+        class="grid sm:grid-cols-1 md:grid-cols-2 gap-4"
       >
-        <span class="font-semibold">{{ option.title }}</span>
-        <p class="text-sm text-[#5c748a] mt-2">
-          {{ option.description }}
-        </p>
-      </div>
-    </section>
-
-    <section
-      v-show="currentOption == 0"
-      ref="optionOne"
-      class="rounded-lg p-4 w-full max-w-[600px] mt-14"
-    >
-      <form class="flex flex-col gap-4" @submit.prevent>
-        <SharedTInput v-model="infos.name" placeholder="Nome" />
-
-        <SharedTInput v-model="infos.email" placeholder="E-mail" type="email" />
-
-        <SharedTInput v-model="infos.photo" placeholder="Foto" />
-
-        <SharedTInput
-          v-model="infos.organizationId"
-          placeholder="Organização ID"
-          type="number"
-        />
-
-        <SharedTInput
-          v-model="infos.password"
-          placeholder="Senha"
-          type="password"
-        />
-
-        <SharedTButton class="mt-4" type="primary" title="Entrar" />
-
-        <div
-          class="text-sm text-[#5c748a] flex items-center justify-center gap-2"
+        <button
+          v-for="option in options"
+          :key="option.value"
+          type="button"
+          class="text-left bg-surface border border-line rounded-2xl p-5 hover:border-violet-300 dark:hover:border-violet-800 hover:shadow-sm transition-all"
+          @click="currentOption = option.value"
         >
           <span
-            class="inline-flex items-center gap-2 cursor-pointer"
-            @click="currentOption = null"
+            class="w-10 h-10 rounded-xl flex items-center justify-center text-white mb-3 bg-gradient-to-br from-violet-500 to-teal-500 shadow-sm shadow-violet-500/30"
           >
-            <b to="/auth/register" class="font-bold">Voltar</b>
-            <Icon name="tabler:arrow-back" />
+            <Icon :name="option.icon" size="1.1rem" />
           </span>
-        </div>
-      </form>
-    </section>
+          <p class="font-semibold text-ink">{{ option.title }}</p>
+          <p class="text-sm text-ink-muted mt-1">{{ option.description }}</p>
+        </button>
+      </section>
 
-    <section
-      v-show="currentOption == 1"
-      ref="optionTwo"
-      class="max-w-[1000px] w-full mt-14"
-    >
-      <div class="w-full flex flex-wrap gap-4 mb-6">
-        <div class="flex-[1_1_200px]">
-          <form class="flex flex-col gap-4" @submit.prevent>
-            <SharedTInput v-model="infosAndCompany.name" placeholder="Nome" />
-
-            <SharedTInput
-              v-model="infosAndCompany.email"
-              placeholder="E-mail"
-              type="email"
-            />
-
-            <SharedTInput v-model="infos.photo" placeholder="Foto" />
-
-            <SharedTInput
-              v-model="infos.password"
-              placeholder="Senha"
-              type="password"
-            />
-          </form>
-        </div>
-
-        <div class="flex-[1_1_200px]">
-          <form class="flex flex-col gap-4" @submit.prevent>
-            <SharedTInput
-              v-model="infosAndCompany.organizationName"
-              placeholder="Nome da organização"
-            />
-
-            <SharedTInput
-              v-model="infosAndCompany.organizationEmail"
-              placeholder="E-mail da organização"
-              type="email"
-            />
-
-            <SharedTInput
-              v-model="infosAndCompany.organizatioAddress"
-              placeholder="Endereço"
-            />
-
-            <SharedTInput
-              v-model="infosAndCompany.organizatioPhone"
-              placeholder="Telefone"
-            />
-
-            <SharedTInput
-              v-model="infosAndCompany.organizationLogo"
-              placeholder="Logo"
-            />
-
-            <SharedTInput
-              v-model="infosAndCompany.organizationVacanciesQuatity"
-              placeholder="Quantidade de vagas"
-            />
-          </form>
-        </div>
-      </div>
-
-      <div class="max-w-[300px] mx-auto">
-        <SharedTButton class="mt-4" type="primary" title="Cadastrar" />
-
-        <div
-          class="text-sm text-[#5c748a] flex items-center justify-center gap-2"
+      <section v-else class="bg-surface border border-line rounded-2xl shadow-sm p-6">
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 text-sm text-ink-muted hover:text-ink mb-5"
+          @click="currentOption = null"
         >
-          <span
-            class="inline-flex items-center gap-2 cursor-pointer"
-            @click="currentOption = null"
-          >
-            <b to="/auth/register" class="font-bold">Voltar</b>
-            <Icon name="tabler:arrow-back" />
-          </span>
+          <Icon name="tabler:arrow-left" size="1rem" />
+          Voltar
+        </button>
+
+        <form v-if="currentOption === 0" class="flex flex-col gap-4" @submit.prevent="handleRegister">
+          <UFormField label="Nome">
+            <UInput v-model="infos.name" placeholder="Nome completo" class="w-full" />
+          </UFormField>
+          <UFormField label="E-mail">
+            <UInput v-model="infos.email" placeholder="voce@empresa.com" type="email" class="w-full" />
+          </UFormField>
+          <UFormField label="ID da organização">
+            <UInput v-model="infos.organizationId" type="number" placeholder="Ex: 1" class="w-full" />
+          </UFormField>
+          <UFormField label="Senha">
+            <UInput v-model="infos.password" placeholder="••••••••" type="password" class="w-full" />
+          </UFormField>
+
+          <UButton type="submit" color="neutral" size="lg" block :loading="loading" label="Registrar" />
+        </form>
+
+        <div v-else class="flex flex-col gap-6">
+          <div class="grid sm:grid-cols-1 md:grid-cols-2 gap-6">
+            <form class="flex flex-col gap-4" @submit.prevent>
+              <h2 class="text-sm font-semibold text-ink-muted">Seus dados</h2>
+              <UFormField label="Nome">
+                <UInput v-model="infosAndCompany.name" placeholder="Nome completo" class="w-full" />
+              </UFormField>
+              <UFormField label="E-mail">
+                <UInput v-model="infosAndCompany.email" placeholder="voce@empresa.com" type="email" class="w-full" />
+              </UFormField>
+              <UFormField label="Senha">
+                <UInput v-model="infosAndCompany.password" placeholder="••••••••" type="password" class="w-full" />
+              </UFormField>
+            </form>
+
+            <form class="flex flex-col gap-4" @submit.prevent>
+              <h2 class="text-sm font-semibold text-ink-muted">Dados da organização</h2>
+              <UFormField label="Nome da organização">
+                <UInput v-model="infosAndCompany.organizationName" placeholder="Nome" class="w-full" />
+              </UFormField>
+              <UFormField label="E-mail da organização">
+                <UInput v-model="infosAndCompany.organizationEmail" placeholder="contato@empresa.com" type="email" class="w-full" />
+              </UFormField>
+              <UFormField label="Endereço">
+                <UInput v-model="infosAndCompany.organizationAddress" placeholder="Endereço" class="w-full" />
+              </UFormField>
+              <UFormField label="Telefone">
+                <UInput v-model="infosAndCompany.organizationPhone" placeholder="Telefone" class="w-full" />
+              </UFormField>
+              <UFormField label="Quantidade de vagas">
+                <UInput v-model="infosAndCompany.organizationVacanciesQuantity" type="number" placeholder="Ex: 20" class="w-full" />
+              </UFormField>
+            </form>
+          </div>
+
+          <UButton color="neutral" size="lg" block :loading="loading" label="Cadastrar" @click="handleRegister" />
         </div>
-      </div>
-    </section>
+      </section>
+    </div>
+
+    <p class="text-center text-sm text-ink-muted mt-6">
+      Já tem uma conta?
+      <NuxtLink to="/auth/login" class="font-semibold text-ink hover:underline">Entrar</NuxtLink>
+    </p>
   </div>
 </template>
 
 <script setup>
 import autoAnimate from "@formkit/auto-animate";
 
+definePageMeta({ layout: "auth" });
+
+const toast = useToast();
+
 const infos = ref({
   name: "",
   email: "",
   password: "",
-  photo: "",
   organizationId: null,
 });
 
@@ -164,35 +121,40 @@ const infosAndCompany = ref({
   name: "",
   email: "",
   password: "",
-  photo: "",
   organizationName: "",
-  organizationId: null,
+  organizationEmail: "",
+  organizationAddress: "",
+  organizationPhone: "",
+  organizationVacanciesQuantity: "",
 });
 
 const currentOption = ref(null);
-const optionOne = ref(null);
-const optionTwo = ref(null);
 const optionsSection = ref(null);
+const loading = ref(false);
 
 const options = [
   {
     value: 0,
+    icon: "tabler:user-plus",
     title: "Registrar usuário em empresa",
-    description:
-      "Se você deseja registrar um usuário em uma empresa já existente.",
+    description: "Se você deseja registrar um usuário em uma empresa já existente.",
   },
-
   {
     value: 1,
+    icon: "tabler:building-plus",
     title: "Registrar usuário e empresa",
-    description:
-      "Se você deseja registrar um usuário e criar uma nova empresa ao mesmo tempo.",
+    description: "Se você deseja registrar um usuário e criar uma nova empresa ao mesmo tempo.",
   },
 ];
 
+const handleRegister = () => {
+  toast.warning({
+    title: "Em breve",
+    message: "A autenticação real ainda não está disponível nesta versão.",
+  });
+};
+
 onMounted(() => {
-  if (optionOne.value) autoAnimate(optionOne.value);
-  if (optionTwo.value) autoAnimate(optionTwo.value);
   if (optionsSection.value) autoAnimate(optionsSection.value);
 });
 </script>

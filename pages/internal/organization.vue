@@ -1,95 +1,84 @@
 <template>
-  <div class="h-full p-4 overflow-y-auto">
-    <div class="content max-w-[1100px] mx-auto sm:mt-4 md:mt-10">
-      <h1 class="text-3xl font-bold">Organização</h1>
+  <div class="min-h-full p-4 md:p-6 overflow-y-auto">
+    <div class="max-w-[900px] mx-auto flex flex-col gap-4 md:gap-5 pb-10">
+      <div>
+        <h1 class="font-display text-2xl md:text-3xl font-bold text-ink tracking-tight">
+          Organização
+        </h1>
+        <p class="text-ink-muted mt-1">
+          Gerencie as informações e configurações da sua organização.
+        </p>
+      </div>
 
-      <span class="text-[#4A739C]"
-        >Gerencie as informações e configurações da sua organização.</span
-      >
-
-      <section class="mt-8 flex flex-wrap gap-4">
-        <form
-          class="form flex-[1_1_300px] flex flex-col gap-4 max-w-[800px]"
-          @submit.prevent
-        >
-          <section class="grid sm:grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="flex-[1_1_300px]">
-              <label class="block text-xs font-medium text-[#5c748a] mb-1"
-                >Nome da organização</label
-              >
-              <SharedTInput v-model="organization.name" placeholder="Nome" />
-            </div>
-
-            <div class="flex-[1_1_300px]">
-              <label class="block text-xs font-medium text-[#5c748a] mb-1"
-                >ID da organização</label
-              >
-              <SharedTInput
-                v-model="organization.id"
-                :readonly="true"
-                placeholder="ID"
-                type="number"
+      <section class="bg-surface border border-line rounded-2xl shadow-sm p-5 md:p-6">
+        <div class="flex flex-col sm:flex-row gap-6">
+          <div class="flex sm:flex-col items-center gap-3 shrink-0">
+            <div
+              class="w-24 h-24 rounded-2xl overflow-hidden flex items-center justify-center text-white text-2xl font-display font-bold shrink-0 bg-gradient-to-br from-violet-500 to-teal-500 shadow-sm shadow-violet-500/30"
+            >
+              <img
+                v-if="organization.logo && !logoFailed"
+                :src="organization.logo"
+                alt="Logo da organização"
+                class="w-full h-full object-cover"
+                @error="logoFailed = true"
               />
+              <span v-else>{{ initials }}</span>
             </div>
+            <p class="text-xs text-ink-faint text-center sm:max-w-[120px]">
+              Cole a URL de uma imagem no campo "Logo" para exibi-la aqui.
+            </p>
+          </div>
 
-            <div class="flex-[1_1_300px]">
-              <label class="block text-xs font-medium text-[#5c748a] mb-1"
-                >Endereço</label
-              >
-              <SharedTInput
-                v-model="organization.address"
-                placeholder="Endereço"
-              />
-            </div>
+          <form class="flex-1 grid sm:grid-cols-1 md:grid-cols-2 gap-4" @submit.prevent>
+            <UFormField label="Nome da organização" class="md:col-span-2">
+              <UInput v-model="organization.name" placeholder="Nome" class="w-full" />
+            </UFormField>
 
-            <div class="flex-[1_1_300px]">
-              <label class="block text-xs font-medium text-[#5c748a] mb-1"
-                >Telefone de contato</label
-              >
-              <SharedTInput
-                v-model="organization.phone"
-                placeholder="Telefone"
-              />
-            </div>
+            <UFormField label="ID da organização">
+              <UInput :model-value="organization.id" disabled class="w-full" />
+            </UFormField>
 
-            <div class="flex-[1_1_300px]">
-              <label class="block text-xs font-medium text-[#5c748a] mb-1"
-                >E-mail</label
-              >
-              <SharedTInput v-model="organization.email" placeholder="E-mail" />
-            </div>
-
-            <div class="flex-[1_1_300px]">
-              <label class="block text-xs font-medium text-[#5c748a] mb-1"
-                >Quantidade de vagas</label
-              >
-              <SharedTInput
+            <UFormField label="Quantidade de vagas">
+              <UInput
                 v-model="organization.vacanciesQuantity"
-                placeholder="Qtd. vagas"
                 type="number"
+                placeholder="Qtd. vagas"
+                class="w-full"
               />
-            </div>
-          </section>
-        </form>
+            </UFormField>
 
-        <div
-          class="logo flex-1 flex flex-col items-center justify-center gap-4"
-        >
-          <figure
-            class="w-[180px] h-[180px] rounded-full bg-[#cdcdcd] flex items-center justify-center"
-          ></figure>
-          <small class="text-sm text-grey">Alterar logo da organização</small>
+            <UFormField label="Endereço" class="md:col-span-2">
+              <UInput v-model="organization.address" placeholder="Endereço" class="w-full" />
+            </UFormField>
+
+            <UFormField label="Telefone de contato">
+              <UInput v-model="organization.phone" placeholder="Telefone" class="w-full" />
+            </UFormField>
+
+            <UFormField label="E-mail">
+              <UInput v-model="organization.email" placeholder="E-mail" type="email" class="w-full" />
+            </UFormField>
+
+            <UFormField label="Logo (URL)" class="md:col-span-2">
+              <UInput
+                v-model="organization.logo"
+                placeholder="https://exemplo.com/logo.png"
+                class="w-full"
+              />
+            </UFormField>
+          </form>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-5 mt-5 border-t border-line">
+          <UButton
+            color="neutral"
+            :loading="loading"
+            label="Salvar alterações"
+            @click="updateOrg"
+          />
         </div>
       </section>
-
-      <div class="max-w-[300px] m-auto">
-        <SharedTButton
-          class="mt-18"
-          title="Salvar alterações"
-          :loading="loading"
-          @click="updateOrg"
-        />
-      </div>
     </div>
   </div>
 </template>
@@ -99,6 +88,7 @@ const http = useApi();
 const toast = useToast();
 
 const loading = ref(false);
+const logoFailed = ref(false);
 
 const organization = ref({
   id: "",
@@ -110,66 +100,61 @@ const organization = ref({
   vacanciesQuantity: 0,
 });
 
+const initials = computed(() =>
+  (organization.value.name || "")
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase())
+    .join("") || "OZ"
+);
+
 const getOrgInfo = async () => {
-  try {
-    const { data, error } = await http.get("/organization/get-by-id/1");
+  const { data, error } = await http.get("/organization/get-by-id/1");
 
-    if (error.value) {
-      toast.error({
-        title: "Falha",
-        message:
-          error.value.message || "Erro ao buscar informações da organização.",
-      });
-      return;
-    }
-
-    Object.assign(organization.value, data.value.content);
-  } catch (error) {
-    console.error("Error fetching vacancies logs:", error);
+  if (error.value) {
+    toast.error({
+      title: "Falha",
+      message: error.value.message || "Erro ao buscar informações da organização.",
+    });
+    return;
   }
+
+  Object.assign(organization.value, data.value.content);
 };
 
-const updateOrg = async () => {
-  try {
-    loading.value = true;
-
-    const { data, error } = await http.put("/organization", organization.value);
-
-    if (error.value) {
-      toast.error({
-        title: "Falha",
-        message: error.value.message || "Erro ao atualizar organização.",
-      });
-      loading.value = false;
-      return;
-    }
-
-    toast.success({
-      title: "Sucesso",
-      message: "Organização atualizada com sucesso.",
-    });
-
-    Object.assign(organization.value, data.value.content); // <-- aqui!
-
-    loading.value = false;
-  } catch (error) {
-    console.error("Error updating organization:", error);
-    loading.value = false;
+watch(
+  () => organization.value.logo,
+  () => {
+    logoFailed.value = false;
   }
+);
+
+const updateOrg = async () => {
+  if (!organization.value.name) {
+    toast.warning({ title: "Atenção", message: "Informe o nome da organização." });
+    return;
+  }
+
+  loading.value = true;
+
+  const { data, error } = await http.put("/organization", organization.value);
+
+  loading.value = false;
+
+  if (error.value) {
+    toast.error({
+      title: "Falha",
+      message: error.value.message || "Erro ao atualizar organização.",
+    });
+    return;
+  }
+
+  toast.success({ title: "Sucesso", message: "Organização atualizada com sucesso." });
+  Object.assign(organization.value, data.value.content);
 };
 
 onMounted(() => {
   getOrgInfo();
 });
 </script>
-
-<style scoped lang="postcss">
-@media (max-width: 640px) {
-  .form {
-    order: 2;
-  }
-  .logo {
-    order: 1;
-  }
-}
-</style>

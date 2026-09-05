@@ -1,10 +1,12 @@
 <template>
-  <header class="h-[70px] flex items-center border-b-2 border-gray-200 p-4">
+  <header class="fixed top-3 sm:top-4 inset-x-3 sm:inset-x-4 z-50 flex justify-center">
     <nav
-      class="relative h-full max-w-[1300px] w-full mx-auto flex items-center justify-between"
+      class="relative w-full max-w-[1300px] h-16 flex items-center justify-between gap-4 px-4 sm:px-5 rounded-full border border-line bg-surface/90 backdrop-blur-md shadow-[0_8px_30px_-12px_rgba(15,23,42,0.15)] overflow-hidden isolate"
     >
-      <div class="flex items-center">
-        <div class="size-4">
+      <div class="flex items-center shrink-0">
+        <div
+          class="w-7 h-7 shrink-0 rounded-lg bg-gradient-to-br from-violet-500 to-teal-500 shadow-sm shadow-violet-500/30 flex items-center justify-center text-white p-1.5"
+        >
           <svg
             viewBox="0 0 48 48"
             fill="none"
@@ -29,59 +31,77 @@
             </defs>
           </svg>
         </div>
-        <span class="text-xl font-bold ml-2">Ez-parking</span>
+        <span class="font-display text-lg font-bold ml-2 text-ink">Ez-parking</span>
       </div>
 
-      <div>
+      <div class="flex items-center">
         <Icon
           :name="menuVisible ? 'tabler:x' : 'tabler:menu-deep'"
           size="1.5rem"
-          class="menu-hamburguer text-[#000] hover:text-[#4f4f4f] transition-colors duration-200 cursor-pointer"
+          class="menu-hamburguer text-ink-muted hover:text-ink transition-colors duration-200 cursor-pointer"
           @click="handleClickmenu"
         />
 
-        <div
-          ref="menu"
-          class="menu flex items-center gap-6 shadow-2xl md:shadow-none"
-        >
-          <template v-for="link in links" :key="link.name">
-            <NuxtLink
-              :to="link.path"
-              class="link text-[#000] hover:text-[#4f4f4f] transition-colors duration-200 font-medium hover:font-semibold"
-              :class="{
-                hidden: width < 768,
-              }"
-            >
-              {{ link.name }}
-            </NuxtLink>
+        <Teleport to="body" :disabled="isDesktop">
+          <div ref="menu" class="menu flex items-center gap-1 shadow-2xl md:shadow-none">
+            <template v-for="link in links" :key="link.name">
+              <NuxtLink
+                :to="link.path"
+                class="link"
+                :class="{
+                  hidden: !isDesktop,
+                }"
+              >
+                {{ link.name }}
+              </NuxtLink>
 
-            <NuxtLink
-              :to="link.path"
-              class="link text-[#000] hover:text-[#4f4f4f] transition-colors duration-200 font-medium hover:font-semibold"
-              :class="{
-                hidden: width >= 768,
-              }"
-              @click="handleClickmenu"
-            >
-              {{ link.name }}
-            </NuxtLink>
-          </template>
+              <NuxtLink
+                :to="link.path"
+                class="link"
+                :class="{
+                  hidden: isDesktop,
+                }"
+                @click="handleClickmenu"
+              >
+                {{ link.name }}
+              </NuxtLink>
+            </template>
 
-          <div class="flex items-center gap-4">
-            <span
-              class="w-[35px] h-[35px] rounded-full flex items-center justify-center bg-[#E8EDF5]"
-            >
-              <Icon
-                name="tabler:bell"
-                class="text-[#000] hover:text-[#4f4f4f] transition-colors duration-200"
+            <div class="flex items-center gap-2 md:ml-2 md:pl-3 md:border-l md:border-line">
+              <ClientOnly>
+                <UButton
+                  :icon="isDark ? 'i-tabler-sun' : 'i-tabler-moon'"
+                  color="neutral"
+                  variant="ghost"
+                  class="rounded-full"
+                  :ui="{ base: 'rounded-full' }"
+                  :aria-label="isDark ? 'Ativar tema claro' : 'Ativar tema escuro'"
+                  @click="toggleColorMode"
+                />
+                <template #fallback>
+                  <UButton
+                    icon="i-tabler-moon"
+                    color="neutral"
+                    variant="ghost"
+                    class="rounded-full"
+                    :ui="{ base: 'rounded-full' }"
+                    disabled
+                  />
+                </template>
+              </ClientOnly>
+
+              <UButton
+                icon="i-tabler-bell"
+                color="neutral"
+                variant="ghost"
+                class="rounded-full"
+                :ui="{ base: 'rounded-full' }"
               />
-            </span>
 
-            <figure
-              class="w-[35px] h-[35px] rounded-full bg-[#cdcdcd]"
-            ></figure>
+              <figure class="w-8 h-8 shrink-0 rounded-full bg-slate-300 dark:bg-slate-600"></figure>
+            </div>
           </div>
-        </div>
+        </Teleport>
       </div>
     </nav>
   </header>
@@ -94,6 +114,25 @@ const menuVisible = ref(false);
 const menu = ref(null);
 
 const { width } = useWindowSize();
+
+// Start with the same assumption the server renders (narrow/mobile), then correct
+// once mounted — deciding this from `width` directly during SSR causes a hydration
+// mismatch, since the server has no real viewport width to measure.
+const isDesktop = ref(false);
+
+onMounted(() => {
+  isDesktop.value = width.value >= 768;
+});
+
+watch(width, (value) => {
+  isDesktop.value = value >= 768;
+});
+
+const colorMode = useColorMode();
+const isDark = computed(() => colorMode.value === "dark");
+const toggleColorMode = () => {
+  colorMode.preference = isDark.value ? "light" : "dark";
+};
 
 const links = [
   { name: "Home", path: "/internal" },
@@ -110,7 +149,7 @@ watch(
   () => menuVisible.value,
   (newValue) => {
     if (newValue) {
-      menu.value.style.left = "30%";
+      menu.value.style.left = "6%";
     } else {
       menu.value.style.left = "150%";
     }
@@ -120,37 +159,66 @@ watch(
 
 <style lang="postcss" scoped>
 .link {
+  position: relative;
   text-decoration: none;
+  padding: 0.55rem 1rem;
+  border-radius: 9999px;
+  font-weight: 500;
+  color: var(--color-ink-muted);
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+}
+
+.link:hover {
+  background: var(--color-line);
+  color: var(--color-ink);
 }
 
 .menu-hamburguer {
   display: none;
 }
-.router-link-exact-active{
-  position: relative;
+
+.router-link-exact-active,
+.router-link-exact-active:hover {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(20, 184, 166, 0.12));
+  color: var(--color-ink);
+  font-weight: 600;
 }
+
 .router-link-exact-active::after {
   content: "";
   position: absolute;
-  width: 100%;
-  height: 2px;
-  background-color: #4a739c;
-  bottom: -2px;
-  left: 0;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 55%;
+  border-radius: 999px;
+  background: linear-gradient(rgb(139, 92, 246), rgb(20, 184, 166));
 }
 
 @media (max-width: 768px) {
   .menu {
     position: fixed;
-    background: #fff;
-    inset: 0;
-    z-index: 123;
-    top: 70px;
-    bottom: 0;
+    background: var(--color-surface);
+    top: 88px;
+    right: 0.75rem;
+    bottom: 0.75rem;
     left: 150%;
-    transition: ease-in-out 0.3s;
+    z-index: 123;
+    border-radius: 1.5rem;
+    border: 1px solid var(--color-line);
+    box-shadow: 0 20px 40px -14px rgba(15, 23, 42, 0.25);
+    transition: left ease-in-out 0.3s;
     flex-direction: column;
-    padding-top: 2rem;
+    align-items: stretch;
+    padding: 1.25rem;
+    gap: 0.25rem;
+  }
+
+  .menu .link {
+    padding: 0.75rem 1rem;
   }
 
   .menu-hamburguer {

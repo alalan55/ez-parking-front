@@ -1,364 +1,336 @@
 <template>
-  <div class="h-full p-4">
-    <div class="content max-w-[1100px] mx-auto mt-10">
-      <h1 class="text-3xl font-bold">Clientes</h1>
-      <span class="text-[#4A739C]">
-        Gerencie as informações dos seus clientes.
-      </span>
-
-      <div class="mt-8">
-        <div class="flex items-center gap-3">
-          <SharedTInput
-            v-model="search"
-            placeholder="Buscar clientes"
-            @input="debouncedSearch"
-          />
-
-          <Icon name="tabler:search" size="1.5rem" class="text-[#5c748a]" />
-        </div>
+  <div class="min-h-full p-4 md:p-6 overflow-y-auto">
+    <div class="max-w-[1400px] mx-auto flex flex-col gap-4 md:gap-5 pb-24">
+      <div>
+        <h1 class="font-display text-2xl md:text-3xl font-bold text-ink tracking-tight">
+          Clientes
+        </h1>
+        <p class="text-ink-muted mt-1">
+          Gerencie os clientes e veículos cadastrados na sua organização.
+        </p>
       </div>
 
-      <section class="mt-8">
-        <SharedTTable
-          :columns="columnsTable"
-          :rows="clients"
-          :loading="loading"
+      <section>
+        <div
+          class="flex flex-wrap items-stretch bg-surface border border-line rounded-2xl divide-x divide-line shadow-sm overflow-hidden"
         >
-          <template #cell-createdAt="{ row }">
-            {{ new Date(row.createdAt).toLocaleDateString("pt-BR") }}
-          </template>
-
-          <template #cell-name="{ row }">
-            <span class="font-semibold">{{ row.name }}</span>
-          </template>
-
-          <template #cell-actions="{ row }">
-            <div class="flex items-center gap-4">
-              <Icon
-                name="tabler:pencil"
-                size="1.3rem"
-                class="cursor-pointer"
-                @click="updateClient(row)"
-              />
-
-              <Icon
-                name="tabler:trash"
-                size="1.3rem"
-                class="cursor-pointer"
-                @click="removeClient(row)"
-              />
+          <div
+            v-for="stat in stats"
+            :key="stat.label"
+            class="flex items-center gap-3 px-4 sm:px-5 py-3.5 flex-1 min-w-[45%] sm:min-w-[160px]"
+          >
+            <span
+              class="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-white"
+              :class="stat.badgeClass"
+            >
+              <Icon :name="stat.icon" size="1.15rem" />
+            </span>
+            <div class="min-w-0">
+              <p class="text-xs text-ink-muted font-medium truncate">{{ stat.label }}</p>
+              <p class="text-lg font-bold text-ink leading-tight truncate">
+                {{ stat.value }}
+              </p>
             </div>
-          </template>
-        </SharedTTable>
+          </div>
+        </div>
       </section>
 
-      <SharedTModal
-        v-model="confirmRemoveVehicleDialog"
-        :show-close-button="false"
-        :title="'Remover veículo'"
-        width="max-w-lg"
-      >
-        <div>
-          <span
-            >Você tem certeza que deseja remover o veículo:
-            <strong>"{{ vehicleToRemove?.plate || "" }}"</strong></span
+      <section>
+        <div
+          class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3"
+        >
+          <div>
+            <h2 class="text-lg font-semibold text-ink">Registros</h2>
+            <p class="text-sm text-ink-muted">
+              {{ clients.length }} cliente{{ clients.length === 1 ? "" : "s" }}
+            </p>
+          </div>
+
+          <UInput
+            v-model="search"
+            icon="i-tabler-search"
+            placeholder="Pesquisar por nome"
+            class="w-full sm:w-[240px]"
+            @input="debouncedSearch"
+          />
+        </div>
+
+        <div class="bg-surface border border-line rounded-2xl shadow-sm overflow-hidden">
+          <UTable
+            :data="clients"
+            :columns="columns"
+            :loading="loading"
+            :ui="{ thead: 'bg-slate-50 dark:bg-slate-800/60' }"
           >
+            <template #name-cell="{ row }">
+              <span class="font-semibold text-ink">{{ row.original.name }}</span>
+            </template>
+
+            <template #phone-cell="{ row }">
+              <span :class="{ 'text-ink-faint': !row.original.phone }">
+                {{ row.original.phone || "—" }}
+              </span>
+            </template>
+
+            <template #vehicles-cell="{ row }">
+              <UBadge
+                v-if="row.original.vehicles?.length"
+                color="neutral"
+                variant="subtle"
+              >
+                {{ row.original.vehicles.length }}
+                veículo{{ row.original.vehicles.length === 1 ? "" : "s" }}
+              </UBadge>
+              <span v-else class="text-ink-faint">—</span>
+            </template>
+
+            <template #createdAt-cell="{ row }">
+              <span class="text-ink-muted">
+                {{ formatDate(row.original.createdAt) }}
+              </span>
+            </template>
+
+            <template #actions-cell="{ row }">
+              <div class="flex items-center justify-end gap-1">
+                <UButton
+                  icon="i-tabler-pencil"
+                  color="neutral"
+                  variant="ghost"
+                  size="sm"
+                  square
+                  @click="openEditClient(row.original)"
+                />
+                <UButton
+                  icon="i-tabler-trash"
+                  color="error"
+                  variant="ghost"
+                  size="sm"
+                  square
+                  @click="openRemoveClient(row.original)"
+                />
+              </div>
+            </template>
+
+            <template #empty>
+              <div class="flex flex-col items-center gap-2 text-ink-muted py-8">
+                <Icon name="tabler:users" size="1.75rem" class="text-ink-faint" />
+                Nenhum cliente encontrado.
+              </div>
+            </template>
+          </UTable>
+        </div>
+      </section>
+    </div>
+
+    <UModal v-model:open="clientDialog" :ui="{ content: 'max-w-3xl w-full' }">
+      <template #body>
+        <section class="space-y-5">
+          <div>
+            <h2 class="font-display text-xl font-bold text-ink">
+              {{ isEditing ? "Atualizar cliente" : "Adicionar cliente" }}
+            </h2>
+            <p class="text-sm text-ink-muted mt-0.5">
+              {{
+                isEditing
+                  ? "Edite os dados do cliente e gerencie seus veículos."
+                  : "Cadastre um novo cliente na sua organização."
+              }}
+            </p>
+          </div>
 
           <div
-            class="m-[2rem_auto_0] max-w-[300px] flex items-center gap-4 justify-end"
+            v-if="isEditing"
+            class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 border border-line rounded-full p-1 w-fit"
           >
-            <SharedTButton
-              variant="outlined"
-              title="Cancelar"
-              @click="
-                confirmRemoveVehicleDialog = false;
-                vehicleToRemove = null;
-              "
-            />
-            <SharedTButton
-              :loading="confirmRemoveVehicleLoading"
-              :disabled="confirmRemoveVehicleLoading"
-              variant="primary"
-              title="Remover"
-              @click="confirmRemoveVehicle()"
-            />
-          </div>
-        </div>
-      </SharedTModal>
-
-      <SharedTModal
-        v-model="handleClientDialog"
-        :show-close-button="false"
-        :title="isEditing ? 'Atualizar cliente' : 'Adicionar cliente'"
-        width="max-w-4xl"
-      >
-        <div>
-          <div class="header flex gap-4 mb-4 mt-4">
-            <span
-              class="text-sm"
-              :class="{ 'active-view': currentModalView === 0 }"
-              @click="currentModalView = 0"
+            <UButton
+              size="sm"
+              color="neutral"
+              :variant="modalTab === 0 ? 'solid' : 'ghost'"
+              class="rounded-full"
+              @click="modalTab = 0"
             >
               Cliente
-            </span>
-            <span
-              class="text-sm"
-              :class="{ 'active-view': currentModalView === 1 }"
-              @click="currentModalView = 1"
+            </UButton>
+            <UButton
+              size="sm"
+              color="neutral"
+              :variant="modalTab === 1 ? 'solid' : 'ghost'"
+              class="rounded-full"
+              @click="modalTab = 1"
             >
-              Veículos do cliente
-            </span>
+              Veículos
+            </UButton>
           </div>
 
-          <section v-show="currentModalView === 0">
-            <div class="mt-5">
-              <form @submit.prevent>
-                <section class="grid sm:grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label
-                      class="block text-xs font-medium text-[#5c748a] mb-1"
-                    >
-                      Nome
-                    </label>
-                    <SharedTInput
-                      v-model="client.name"
-                      placeholder="Nome"
-                      type="text"
-                    />
-                  </div>
+          <section v-show="modalTab === 0" class="space-y-5">
+            <div class="grid sm:grid-cols-1 md:grid-cols-2 gap-4">
+              <UFormField label="Nome">
+                <UInput v-model="client.name" placeholder="Nome do cliente" class="w-full" />
+              </UFormField>
 
-                  <div>
-                    <label
-                      class="block text-xs font-medium text-[#5c748a] mb-1"
-                    >
-                      Telefone
-                    </label>
-                    <SharedTInput
-                      v-model="client.phone"
-                      mask="(##) # ####-####"
-                      placeholder="Telefone"
-                      type="text"
-                    />
-                  </div>
-                </section>
+              <UFormField label="Telefone">
+                <UInput v-model="client.phone" placeholder="(11) 98888-7777" class="w-full" />
+              </UFormField>
+            </div>
 
-                <div
-                  class="m-[2rem_auto_0] max-w-[300px] flex items-center gap-4 justify-end"
-                >
-                  <SharedTButton
-                    variant="outlined"
-                    title="Cancelar"
-                    @click="handleClientDialog = false"
-                  />
-                  <SharedTButton
-                    :loading="loadingAddClient"
-                    variant="primary"
-                    :title="isEditing ? 'Atualizar' : 'Adicionar'"
-                    @click="isEditing ? confirmUpdateClient() : createClient()"
-                  />
-                </div>
-              </form>
+            <div class="flex items-center justify-end gap-2 pt-4 border-t border-line">
+              <UButton color="neutral" variant="ghost" label="Cancelar" @click="clientDialog = false" />
+              <UButton
+                color="neutral"
+                :loading="loadingClient"
+                :label="isEditing ? 'Atualizar' : 'Adicionar'"
+                @click="isEditing ? updateClient() : createClient()"
+              />
             </div>
           </section>
 
-          <section v-show="currentModalView === 1">
-            <div class="mt-5">
+          <section v-show="modalTab === 1" class="space-y-4">
+            <div v-show="!isAddingVehicle && !isUpdatingVehicle">
               <div
-                v-show="!isAddingVehicle && !isUpdatingVehicle"
-                class="vehicle-list"
+                v-if="clientVehicles.length"
+                class="grid sm:grid-cols-1 md:grid-cols-2 gap-3 max-h-[320px] overflow-y-auto pr-1"
               >
                 <div
-                  class="grid sm:grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto max-h-[300px]"
+                  v-for="vehicle in clientVehicles"
+                  :key="vehicle.id"
+                  class="p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-line rounded-xl"
                 >
-                  <div
-                    v-for="(vehicle, index) in clientVehicles"
-                    :key="index"
-                    class="p-4 bg-[#f0f4f8] rounded-lg shadow-sm"
-                  >
-                    <div
-                      class="flex items-center justify-between sm:gap-2 md:gap-4"
-                    >
-                      <div>
-                        <p class="font-semibold mb-2">
-                          {{ vehicle?.plate?.toUpperCase() }}
-                        </p>
-                        <div class="grid sm:grid-cols-1 md:grid-cols-5 gap-4">
-                          <p class="text-xs">{{ vehicle.mark }}</p>
-                          <p class="text-xs">{{ vehicle.model }}</p>
-                          <p class="text-xs">{{ vehicle.year }}</p>
-                          <p class="text-xs">{{ vehicle.color }}</p>
-                          <p class="text-xs">{{ vehicleType[vehicle.type] }}</p>
-                        </div>
-                      </div>
-                      <div>
-                        <div class="flex items-center gap-2">
-                          <Icon
-                            name="tabler:pencil"
-                            size="1.1rem"
-                            class="cursor-pointer"
-                            @click="setVehicleToUpdate(vehicle)"
-                          />
-
-                          <Icon
-                            name="tabler:trash"
-                            size="1.1rem"
-                            class="cursor-pointer"
-                            @click="setVehicleToRemove(vehicle)"
-                          />
-                        </div>
-                      </div>
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                      <p class="font-mono font-bold text-ink">
+                        {{ vehicle.plate?.toUpperCase() }}
+                      </p>
+                      <p class="text-xs text-ink-muted mt-1">
+                        {{ [vehicle.mark, vehicle.model, vehicle.year, vehicle.color].filter(Boolean).join(" · ") }}
+                      </p>
+                      <UBadge color="neutral" variant="subtle" class="mt-2">
+                        {{ vehicleType[vehicle.type] }}
+                      </UBadge>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                      <UButton
+                        icon="i-tabler-pencil"
+                        color="neutral"
+                        variant="ghost"
+                        size="xs"
+                        square
+                        @click="setVehicleToUpdate(vehicle)"
+                      />
+                      <UButton
+                        icon="i-tabler-trash"
+                        color="error"
+                        variant="ghost"
+                        size="xs"
+                        square
+                        @click="setVehicleToRemove(vehicle)"
+                      />
                     </div>
                   </div>
                 </div>
-
-                <div
-                  v-if="!clientVehicles.length"
-                  class="h-[100px] flex items-center justify-center"
-                >
-                  <p class="text-sm text-[#5c748a]">
-                    Nenhum veículo cadastrado para este cliente.
-                  </p>
-                </div>
-              </div>
-
-              <div v-show="isAddingVehicle || isUpdatingVehicle">
-                <form @submit.prevent>
-                  <section class="grid sm:grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label
-                        class="block text-xs font-medium text-[#5c748a] mb-1"
-                      >
-                        Placa
-                      </label>
-                      <SharedTInput
-                        v-model="newVehicle.plate"
-                        placeholder="Placa"
-                        type="text"
-                      />
-                    </div>
-
-                    <div>
-                      <label
-                        class="block text-xs font-medium text-[#5c748a] mb-1"
-                      >
-                        Marca
-                      </label>
-                      <SharedTInput
-                        v-model="newVehicle.mark"
-                        placeholder="Marca"
-                        type="text"
-                      />
-                    </div>
-
-                    <div>
-                      <label
-                        class="block text-xs font-medium text-[#5c748a] mb-1"
-                      >
-                        Modelo
-                      </label>
-                      <SharedTInput
-                        v-model="newVehicle.model"
-                        placeholder="Modelo"
-                        type="text"
-                      />
-                    </div>
-
-                    <div>
-                      <label
-                        class="block text-xs font-medium text-[#5c748a] mb-1"
-                      >
-                        Ano
-                      </label>
-                      <SharedTInput
-                        v-model="newVehicle.year"
-                        placeholder="Ano"
-                        type="number"
-                      />
-                    </div>
-
-                    <div>
-                      <label
-                        class="block text-xs font-medium text-[#5c748a] mb-1"
-                      >
-                        Cor
-                      </label>
-                      <SharedTInput
-                        v-model="newVehicle.color"
-                        placeholder="Cor"
-                        type="text"
-                      />
-                    </div>
-
-                    <div>
-                      <label
-                        class="block text-xs font-medium text-[#5c748a] mb-1"
-                      >
-                        Tipo
-                      </label>
-
-                      <SharedTSelect
-                        v-model="newVehicle.type"
-                        :options="vehicleTypesOptions"
-                        placeholder="Selecione o tipo"
-                      />
-                    </div>
-                  </section>
-                </form>
               </div>
 
               <div
-                class="m-[2rem_auto_0] max-w-[300px] flex items-center gap-4 justify-end"
+                v-else
+                class="h-[120px] flex flex-col items-center justify-center gap-1.5 text-ink-muted"
               >
-                <SharedTButton
-                  variant="outlined"
-                  title="Cancelar"
-                  @click="handleClientDialog = false"
-                />
-                <SharedTButton
-                  :loading="loadingAddVehicle"
-                  variant="primary"
-                  :title="
-                    isAddingVehicle
-                      ? 'Adicionar'
-                      : isUpdatingVehicle
-                      ? 'Atualizar'
-                      : 'Novo veículo'
-                  "
-                  @click="
-                    isAddingVehicle
-                      ? addNewVehicle()
-                      : isUpdatingVehicle
-                      ? updateVehicle()
-                      : (isAddingVehicle = true)
-                  "
+                <Icon name="tabler:car-off" size="1.5rem" class="text-ink-faint" />
+                Nenhum veículo cadastrado para este cliente.
+              </div>
+
+              <div class="flex items-center justify-end gap-2 pt-4 border-t border-line mt-4">
+                <UButton color="neutral" variant="ghost" label="Fechar" @click="clientDialog = false" />
+                <UButton color="neutral" icon="i-tabler-plus" label="Novo veículo" @click="isAddingVehicle = true" />
+              </div>
+            </div>
+
+            <div v-show="isAddingVehicle || isUpdatingVehicle" class="space-y-5">
+              <div class="grid sm:grid-cols-1 md:grid-cols-2 gap-4">
+                <UFormField label="Placa">
+                  <UInput v-model="newVehicle.plate" placeholder="ABC1D23" class="w-full" />
+                </UFormField>
+                <UFormField label="Marca">
+                  <UInput v-model="newVehicle.mark" placeholder="Marca" class="w-full" />
+                </UFormField>
+                <UFormField label="Modelo">
+                  <UInput v-model="newVehicle.model" placeholder="Modelo" class="w-full" />
+                </UFormField>
+                <UFormField label="Ano">
+                  <UInput v-model="newVehicle.year" type="number" placeholder="Ano" class="w-full" />
+                </UFormField>
+                <UFormField label="Cor">
+                  <UInput v-model="newVehicle.color" placeholder="Cor" class="w-full" />
+                </UFormField>
+                <UFormField label="Tipo">
+                  <USelect
+                    v-model="newVehicle.type"
+                    :items="vehicleTypesOptions"
+                    placeholder="Selecione o tipo"
+                    class="w-full"
+                  />
+                </UFormField>
+              </div>
+
+              <div class="flex items-center justify-end gap-2 pt-4 border-t border-line">
+                <UButton color="neutral" variant="ghost" label="Cancelar" @click="resetAddVehicle" />
+                <UButton
+                  color="neutral"
+                  :loading="loadingVehicle"
+                  :label="isUpdatingVehicle ? 'Atualizar' : 'Adicionar'"
+                  @click="isUpdatingVehicle ? updateVehicle() : addNewVehicle()"
                 />
               </div>
             </div>
           </section>
-        </div>
-      </SharedTModal>
+        </section>
+      </template>
+    </UModal>
 
-      <SharedTRemoveDataCard
-        v-model="removeDialog"
-        :show-close-button="false"
-        :loading="loadingRemove"
-        title="Remover cliente"
-        description="Tem certeza que deseja remover este cliente? Esta ação não pode ser  desfeita."
-        width="max-w-lg"
-        @confirm="confirmRemoveClient"
-      />
+    <UModal v-model:open="removeClientDialog" :ui="{ content: 'max-w-md w-full' }">
+      <template #body>
+        <section class="space-y-4">
+          <div>
+            <h2 class="font-display text-lg font-bold text-ink">Remover cliente</h2>
+            <p class="text-sm text-ink-muted mt-1">
+              Tem certeza que deseja remover
+              <strong class="text-ink">{{ clientToRemove?.name }}</strong>? Esta ação não
+              pode ser desfeita.
+            </p>
+          </div>
+          <div class="flex items-center justify-end gap-2">
+            <UButton color="neutral" variant="ghost" label="Cancelar" @click="removeClientDialog = false" />
+            <UButton color="error" :loading="loadingRemoveClient" label="Remover" @click="confirmRemoveClient" />
+          </div>
+        </section>
+      </template>
+    </UModal>
 
-      <button
-        class="rounded-full fixed bottom-4 right-4 md:bottom-14 md:right-14 flex items-center justify-center p-3 bg-[#000] text-white shadow-lg hover:bg-[#2e2e2e] transition-colors duration-200 cursor-pointer"
-        @click="handleClientDialog = true"
-      >
-        <Icon
-          name="tabler:plus"
-          size="1.5rem"
-          class="bg-[#fff] text-white rounded-full p-3 shadow-lg transition-colors duration-200"
-        />
-      </button>
-    </div>
+    <UModal v-model:open="removeVehicleDialog" :ui="{ content: 'max-w-md w-full' }">
+      <template #body>
+        <section class="space-y-4">
+          <div>
+            <h2 class="font-display text-lg font-bold text-ink">Remover veículo</h2>
+            <p class="text-sm text-ink-muted mt-1">
+              Tem certeza que deseja remover o veículo
+              <strong class="font-mono text-ink">{{ vehicleToRemove?.plate?.toUpperCase() }}</strong>?
+            </p>
+          </div>
+          <div class="flex items-center justify-end gap-2">
+            <UButton color="neutral" variant="ghost" label="Cancelar" @click="removeVehicleDialog = false" />
+            <UButton color="error" :loading="loadingRemoveVehicle" label="Remover" @click="confirmRemoveVehicle" />
+          </div>
+        </section>
+      </template>
+    </UModal>
+
+    <UButton
+      class="fixed bottom-5 right-5 md:bottom-10 md:right-10 rounded-full shadow-lg shadow-slate-900/15"
+      color="neutral"
+      size="xl"
+      icon="i-tabler-plus"
+      @click="openCreateClient"
+    >
+      <span class="hidden sm:inline">Novo cliente</span>
+    </UButton>
   </div>
 </template>
 
@@ -369,39 +341,37 @@ const http = useApi();
 const toast = useToast();
 
 const loading = ref(false);
-const loadingRemove = ref(false);
-const handleClientDialog = ref(false);
-const loadingAddClient = ref(false);
-const loadingAddVehicle = ref(false);
-const isEditing = ref(false);
-
-const confirmRemoveVehicleDialog = ref(false);
-const confirmRemoveVehicleLoading = ref(false);
-const vehicleToRemove = ref(null);
-
-const currentModalView = ref(0);
-
-const removeDialog = ref(false);
-const clients = ref([]);
-const clientVehicles = ref([]);
-const currentClient = ref(null);
 const search = ref("");
-const client = ref({
-  name: "",
-  phone: "",
-});
+const clients = ref([]);
 
+const clientDialog = ref(false);
+const isEditing = ref(false);
+const loadingClient = ref(false);
+const modalTab = ref(0);
+
+const currentClient = ref(null);
+const client = ref({ name: "", phone: "" });
+
+const clientVehicles = ref([]);
 const isAddingVehicle = ref(false);
 const isUpdatingVehicle = ref(false);
-
+const loadingVehicle = ref(false);
 const newVehicle = ref({
   plate: "",
   mark: "",
   model: "",
   year: "",
   color: "",
-  type: 0, // Default to Carro
+  type: 0,
 });
+
+const removeClientDialog = ref(false);
+const clientToRemove = ref(null);
+const loadingRemoveClient = ref(false);
+
+const removeVehicleDialog = ref(false);
+const vehicleToRemove = ref(null);
+const loadingRemoveVehicle = ref(false);
 
 const vehicleType = {
   0: "Carro",
@@ -419,359 +389,286 @@ const vehicleTypesOptions = [
   { label: "Bicicleta", value: 4 },
 ];
 
-const columnsTable = [
-  {
-    key: "name",
-    label: "Nome",
-    thClass: "w-50",
-    tdClass: "text-[#0d151c]",
-  },
-  { key: "phone", label: "Telefone", thClass: "w-40", tdClass: "" },
-  {
-    key: "createdAt",
-    label: "Registrado em",
-    thClass: "w-30",
-    tdClass: "text-[#49749c]",
-  },
-
-  {
-    key: "actions",
-    label: "Actions",
-    thClass: "w-20",
-    tdClass: "text-[#49749c]",
-  },
+const columns = [
+  { accessorKey: "name", header: "Nome" },
+  { accessorKey: "phone", header: "Telefone" },
+  { id: "vehicles", header: "Veículos" },
+  { accessorKey: "createdAt", header: "Registrado em" },
+  { id: "actions", header: "" },
 ];
+
+const stats = computed(() => {
+  const totalVehicles = clients.value.reduce(
+    (acc, c) => acc + (c.vehicles?.length || 0),
+    0
+  );
+  return [
+    {
+      label: "Total de clientes",
+      value: clients.value.length,
+      icon: "tabler:users",
+      badgeClass: "bg-gradient-to-br from-violet-500 to-violet-600 shadow-sm shadow-violet-500/30",
+    },
+    {
+      label: "Veículos cadastrados",
+      value: totalVehicles,
+      icon: "iconoir:car",
+      badgeClass: "bg-gradient-to-br from-teal-500 to-teal-600 shadow-sm shadow-teal-500/30",
+    },
+    {
+      label: "Sem veículo",
+      value: clients.value.filter((c) => !c.vehicles?.length).length,
+      icon: "tabler:car-off",
+      badgeClass: "bg-gradient-to-br from-slate-500 to-slate-600 shadow-sm shadow-slate-500/30",
+    },
+  ];
+});
+
+const formatDate = (value) =>
+  value ? new Date(value).toLocaleDateString("pt-BR") : "—";
 
 const debouncedSearch = useDebounceFn(() => {
   getClients();
 }, 550);
 
-// vehicles
-const getVehiclesFromClient = async (clientId) => {
-  try {
-    loading.value = true;
+const getClients = async () => {
+  loading.value = true;
 
-    const { data, error } = await http.get(
-      `/vehicle/get-all-by-client/${clientId}/1`
-    );
-
-    if (error.value) {
-      toast.error({
-        title: "Erro",
-        message: error.value.message || "Erro ao buscar veículos do cliente.",
-      });
-      loading.value = false;
-      return;
-    }
-
-    clientVehicles.value = data.value.content;
-
-    loading.value = false;
-  } catch (error) {
-    console.error("Error fetching vehicles:", error);
-    loading.value = false;
-  }
-};
-
-const setVehicleToRemove = (vehicle) => {
-  vehicleToRemove.value = vehicle;
-  confirmRemoveVehicleDialog.value = true;
-};
-
-const setVehicleToUpdate = (vehicle) => {
-  newVehicle.value = {
-    ...vehicle,
-  };
-
-  isUpdatingVehicle.value = true;
-};
-
-const confirmRemoveVehicle = async () => {
-  confirmRemoveVehicleLoading.value = true;
-
-  const { error } = await http.post(`/client/remove-vehicle`, {
-    userId: currentClient.value.id,
-    vehicleId: vehicleToRemove.value.id,
+  const { data, error } = await http.get("/client/get-all-by-organization/1", {
+    params: { name: search.value },
   });
 
   if (error.value) {
     toast.error({
       title: "Falha",
-      message: error.value.message || "Erro ao remover veículo.",
+      message: error.value.message || "Erro ao buscar clientes.",
     });
-    confirmRemoveVehicleLoading.value = false;
+    loading.value = false;
     return;
   }
 
-  confirmRemoveVehicleDialog.value = false;
-
-  toast.success({
-    title: "Sucesso",
-    message: "Veículo removido com sucesso.",
-  });
-
-  clientVehicles.value = clientVehicles.value.filter(
-    (v) => v.id !== vehicleToRemove.value.id
-  );
-
-  confirmRemoveVehicleLoading.value = false;
-  vehicleToRemove.value = null;
+  clients.value = data.value.content;
+  loading.value = false;
 };
 
 const resetAddVehicle = () => {
   isAddingVehicle.value = false;
   isUpdatingVehicle.value = false;
-  newVehicle.value = {
-    plate: "",
-    mark: "",
-    model: "",
-    year: "",
-    color: "",
-    type: 0,
-  };
+  newVehicle.value = { plate: "", mark: "", model: "", year: "", color: "", type: 0 };
 };
 
-const updateVehicle = async () => {
-  loadingAddVehicle.value = true;
-
-  const { error } = await http.put(`/vehicle/${newVehicle.value.id}`, {
-    ...newVehicle.value,
-    userId: currentClient.value.id,
-  });
-
-  if (error.value) {
-    toast.error({
-      title: "Erro",
-      message: error.value.message || "Erro ao atualizar veículo.",
-    });
-
-    loadingAddVehicle.value = false;
-    console.error("Error on update vehicle:", error.value);
-    return;
-  }
-
-  toast.success({
-    title: "Sucesso",
-    message: "Veículo atualizado com sucesso.",
-  });
-
-  const index = clientVehicles.value.findIndex(
-    (v) => v.id === newVehicle.value.id
-  );
-
-  if (index !== -1) clientVehicles.value[index] = { ...newVehicle.value };
-
-  loadingAddVehicle.value = false;
-
-  resetAddVehicle();
-};
-
-const addNewVehicle = async () => {
-  const obj = {
-    ...newVehicle.value,
-    userId: currentClient.value.id,
-    organizationId: 1, // mocado
-  };
-
-  loadingAddVehicle.value = true;
-
-  const { data, error } = await http.post("/client/add-vehicle", obj);
-
-  if (error.value) {
-    toast.error({
-      title: "Erro",
-      message: error.value.message || "Erro ao adicionar veículo.",
-    });
-
-    loadingAddVehicle.value = false;
-    return;
-  }
-
-  clientVehicles.value.push({ ...data.value.content.vehicle });
-
-  toast.success({
-    title: "Sucesso",
-    message: "Veículo adicionado com sucesso.",
-  });
-
-  resetAddVehicle();
-
-  loadingAddVehicle.value = false;
-};
-
-// clients
-const getClients = async () => {
-  try {
-    loading.value = true;
-
-    const { data } = await http.get("/client/get-all-by-organization/1", {
-      params: {
-        name: search.value,
-      },
-    });
-
-    clients.value = data.value.content;
-
-    loading.value = false;
-  } catch (error) {
-    console.error("Error fetching clients logs:", error);
-    loading.value = false;
-  }
-};
-
-const updateClient = (row) => {
-  currentClient.value = row;
-  client.value = row;
-
-  getVehiclesFromClient(row.id);
-
-  isEditing.value = true;
-  handleClientDialog.value = true;
-};
-
-const removeClient = (row) => {
-  currentClient.value = row;
-  removeDialog.value = true;
-};
-
-const confirmRemoveClient = async () => {
-  loadingRemove.value = true;
-
-  const { error } = await http.delete(
-    `/client/delete-from-organization/1/${currentClient.value.id}`
-  );
-
-  if (error.value) {
-    toast.error({
-      title: "Falha",
-      message: error.value.message || "Erro ao remover cliente.",
-    });
-    loadingRemove.value = false;
-    return;
-  }
-
-  removeDialog.value = false;
+const resetClientModal = () => {
+  isEditing.value = false;
+  modalTab.value = 0;
+  client.value = { name: "", phone: "" };
   currentClient.value = null;
+  clientVehicles.value = [];
+  loadingClient.value = false;
+  resetAddVehicle();
+};
 
-  toast.success({
-    title: "Sucesso",
-    message: "Cliente removido com sucesso.",
-  });
+const openCreateClient = () => {
+  resetClientModal();
+  clientDialog.value = true;
+};
 
-  loadingRemove.value = false;
-  getClients();
+const getVehiclesFromClient = async (clientId) => {
+  const { data, error } = await http.get(`/vehicle/get-all-by-client/${clientId}/1`);
+
+  if (error.value) {
+    toast.error({
+      title: "Erro",
+      message: error.value.message || "Erro ao buscar veículos do cliente.",
+    });
+    return;
+  }
+
+  clientVehicles.value = data.value.content;
+};
+
+const openEditClient = (row) => {
+  resetClientModal();
+  currentClient.value = row;
+  client.value = { id: row.id, name: row.name, phone: row.phone };
+  isEditing.value = true;
+  clientDialog.value = true;
+  getVehiclesFromClient(row.id);
 };
 
 const createClient = async () => {
-  loadingAddClient.value = true;
+  if (!client.value.name) {
+    toast.warning({ title: "Atenção", message: "Informe o nome do cliente." });
+    return;
+  }
+
+  loadingClient.value = true;
 
   const { error } = await http.post("/client", {
     ...client.value,
     organizationId: 1,
   });
 
+  loadingClient.value = false;
+
   if (error.value) {
     toast.error({
       title: "Falha",
       message: error.value.message || "Erro ao cadastrar cliente.",
     });
-    loadingAddClient.value = false;
     return;
   }
 
-  handleClientDialog.value = false;
-
-  toast.success({
-    title: "Sucesso",
-    message: "Cliente cadastrado com sucesso.",
-  });
-
-  client.value = {
-    name: "",
-    phone: "",
-  };
-
+  toast.success({ title: "Sucesso", message: "Cliente cadastrado com sucesso." });
+  clientDialog.value = false;
   getClients();
-
-  loadingAddClient.value = false;
 };
 
-const confirmUpdateClient = async () => {
-  loadingAddClient.value = true;
+const updateClient = async () => {
+  if (!client.value.name) {
+    toast.warning({ title: "Atenção", message: "Informe o nome do cliente." });
+    return;
+  }
 
-  const { error } = await http.put("/client", {
-    ...client.value,
-  });
+  loadingClient.value = true;
+
+  const { error } = await http.patch("/client", { ...client.value });
+
+  loadingClient.value = false;
 
   if (error.value) {
     toast.error({
       title: "Falha",
       message: error.value.message || "Erro ao atualizar cliente.",
     });
-    loadingAddClient.value = false;
     return;
   }
 
-  handleClientDialog.value = false;
-
-  toast.success({
-    title: "Sucesso",
-    message: "Cliente atualizado com sucesso.",
-  });
-
-  client.value = {
-    name: "",
-    phone: "",
-  };
-
+  toast.success({ title: "Sucesso", message: "Cliente atualizado com sucesso." });
+  clientDialog.value = false;
   getClients();
-
-  loadingAddClient.value = false;
 };
 
-const resetClientModal = () => {
-  isEditing.value = false;
-  currentModalView.value = 0;
-  client.value = { name: "", phone: "" };
-  currentClient.value = null;
-  clientVehicles.value = [];
-  isAddingVehicle.value = false;
-  isUpdatingVehicle.value = false;
-  loadingAddClient.value = false;
-  loadingAddVehicle.value = false;
+const openRemoveClient = (row) => {
+  clientToRemove.value = row;
+  removeClientDialog.value = true;
+};
+
+const confirmRemoveClient = async () => {
+  loadingRemoveClient.value = true;
+
+  const { error } = await http.delete(
+    `/client/delete-from-organization/1/${clientToRemove.value.id}`
+  );
+
+  loadingRemoveClient.value = false;
+
+  if (error.value) {
+    toast.error({
+      title: "Falha",
+      message: error.value.message || "Erro ao remover cliente.",
+    });
+    return;
+  }
+
+  toast.success({ title: "Sucesso", message: "Cliente removido com sucesso." });
+  removeClientDialog.value = false;
+  clientToRemove.value = null;
+  getClients();
+};
+
+const setVehicleToUpdate = (vehicle) => {
+  newVehicle.value = { ...vehicle };
+  isUpdatingVehicle.value = true;
+};
+
+const addNewVehicle = async () => {
+  if (!newVehicle.value.plate) {
+    toast.warning({ title: "Atenção", message: "Informe a placa do veículo." });
+    return;
+  }
+
+  loadingVehicle.value = true;
+
+  const { data, error } = await http.post("/client/add-vehicle", {
+    ...newVehicle.value,
+    userId: currentClient.value.id,
+    organizationId: 1,
+  });
+
+  loadingVehicle.value = false;
+
+  if (error.value) {
+    toast.error({
+      title: "Erro",
+      message: error.value.message || "Erro ao adicionar veículo.",
+    });
+    return;
+  }
+
+  clientVehicles.value.push({ ...data.value.content.vehicle });
+  toast.success({ title: "Sucesso", message: "Veículo adicionado com sucesso." });
   resetAddVehicle();
 };
 
-watch(handleClientDialog, (newValue) => {
-  if (!newValue) resetClientModal();
-});
+const updateVehicle = async () => {
+  loadingVehicle.value = true;
 
-watch(
-  () => currentModalView.value,
-  (nv) => {
-    if (nv === 1) resetAddVehicle();
+  const { error } = await http.put(`/vehicle/${newVehicle.value.id}`, {
+    ...newVehicle.value,
+    userId: currentClient.value.id,
+  });
+
+  loadingVehicle.value = false;
+
+  if (error.value) {
+    toast.error({
+      title: "Erro",
+      message: error.value.message || "Erro ao atualizar veículo.",
+    });
+    return;
   }
-);
+
+  const index = clientVehicles.value.findIndex((v) => v.id === newVehicle.value.id);
+  if (index !== -1) clientVehicles.value[index] = { ...newVehicle.value };
+
+  toast.success({ title: "Sucesso", message: "Veículo atualizado com sucesso." });
+  resetAddVehicle();
+};
+
+const setVehicleToRemove = (vehicle) => {
+  vehicleToRemove.value = vehicle;
+  removeVehicleDialog.value = true;
+};
+
+const confirmRemoveVehicle = async () => {
+  loadingRemoveVehicle.value = true;
+
+  const { error } = await http.post("/client/remove-vehicle", {
+    userId: currentClient.value.id,
+    vehicleId: vehicleToRemove.value.id,
+  });
+
+  loadingRemoveVehicle.value = false;
+
+  if (error.value) {
+    toast.error({
+      title: "Falha",
+      message: error.value.message || "Erro ao remover veículo.",
+    });
+    return;
+  }
+
+  clientVehicles.value = clientVehicles.value.filter(
+    (v) => v.id !== vehicleToRemove.value.id
+  );
+  toast.success({ title: "Sucesso", message: "Veículo removido com sucesso." });
+  removeVehicleDialog.value = false;
+  vehicleToRemove.value = null;
+};
+
+watch(clientDialog, (open) => {
+  if (!open) resetClientModal();
+});
 
 getClients();
 </script>
-
-<style scoped lang="postcss">
-.header {
-  span {
-    position: relative;
-    cursor: pointer;
-    &.active-view {
-      &::after {
-        content: "";
-        position: absolute;
-        width: 100%;
-        height: 2px;
-        background-color: #4a739c;
-        bottom: -2px;
-        left: 0;
-      }
-    }
-  }
-}
-</style>

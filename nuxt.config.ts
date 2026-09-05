@@ -13,12 +13,19 @@ export default defineNuxtConfig({
     },
   },
 
+  // Dark mode is defined via our own tokens in assets/css/tailwind.css
+  // (see the `.dark` overrides) — color-mode toggling is handled by the
+  // navbar's theme switch using @nuxtjs/color-mode's useColorMode().
+  colorMode: {
+    classSuffix: "",
+  },
+
   modules: [
     "@nuxt/eslint",
     "@nuxt/fonts",
     "@nuxt/icon",
     "@nuxt/image",
-    "@nuxtjs/tailwindcss",
+    "@nuxt/ui",
     "@vueuse/nuxt",
     "nuxt-toast",
     "nuxt-echarts",
