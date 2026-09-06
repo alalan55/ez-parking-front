@@ -1,84 +1,167 @@
 <template>
   <div class="min-h-full p-4 md:p-6 overflow-y-auto">
     <div class="max-w-[900px] mx-auto flex flex-col gap-4 md:gap-5 pb-10">
-      <div>
-        <h1 class="font-display text-2xl md:text-3xl font-bold text-ink tracking-tight">
-          Organização
-        </h1>
-        <p class="text-ink-muted mt-1">
-          Gerencie as informações e configurações da sua organização.
-        </p>
-      </div>
+      <LayoutPageHeader
+        title="Organização"
+        subtitle="Gerencie os dados cadastrais e de contato da sua organização."
+      />
 
-      <section class="bg-surface border border-line rounded-2xl shadow-sm p-5 md:p-6">
-        <div class="flex flex-col sm:flex-row gap-6">
-          <div class="flex sm:flex-col items-center gap-3 shrink-0">
-            <div
-              class="w-24 h-24 rounded-2xl overflow-hidden flex items-center justify-center text-white text-2xl font-display font-bold shrink-0 bg-gradient-to-br from-violet-500 to-teal-500 shadow-sm shadow-violet-500/30"
-            >
-              <img
-                v-if="organization.logo && !logoFailed"
-                :src="organization.logo"
-                alt="Logo da organização"
-                class="w-full h-full object-cover"
-                @error="logoFailed = true"
-              />
-              <span v-else>{{ initials }}</span>
-            </div>
-            <p class="text-xs text-ink-faint text-center sm:max-w-[120px]">
-              Cole a URL de uma imagem no campo "Logo" para exibi-la aqui.
+      <form class="flex flex-col gap-4 md:gap-5" @submit.prevent="updateOrg">
+        <section class="bg-surface border border-line rounded p-4 md:p-6 flex flex-col gap-4">
+          <div>
+            <h2 class="text-sm font-semibold text-ink flex items-center gap-1.5">
+              <Icon name="tabler:building" size="1rem" class="text-ink-faint" />
+              Informações da organização
+            </h2>
+            <p class="text-xs text-ink-muted mt-0.5">
+              Dados principais usados para identificar sua organização no Ez-parking.
             </p>
           </div>
 
-          <form class="flex-1 grid sm:grid-cols-1 md:grid-cols-2 gap-4" @submit.prevent>
-            <UFormField label="Nome da organização" class="md:col-span-2">
-              <UInput v-model="organization.name" placeholder="Nome" class="w-full" />
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-4 pt-1">
+            <div class="md:col-span-4 flex flex-col gap-3 bg-surface-2 border border-line rounded p-4">
+              <p class="font-mono text-[11px] uppercase tracking-wide text-ink-faint">Emblema</p>
+              <div class="flex items-center gap-3">
+                <div
+                  class="w-[72px] h-[72px] shrink-0 rounded bg-surface border border-line overflow-hidden flex items-center justify-center text-ink text-lg font-semibold"
+                >
+                  <img
+                    v-if="organization.logo && !logoFailed"
+                    :src="organization.logo"
+                    alt="Logo da organização"
+                    class="w-full h-full object-cover"
+                    @error="logoFailed = true"
+                  />
+                  <span v-else class="font-mono">{{ initials }}</span>
+                </div>
+                <p class="text-xs text-ink-faint">
+                  Cole a URL de uma imagem no campo "Logo" ao lado. Sem imagem, mostramos as iniciais do nome.
+                </p>
+              </div>
+            </div>
+
+            <div class="md:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <UFormField
+                label="Nome da organização"
+                class="sm:col-span-2"
+                :ui="{ label: 'font-mono text-[11px] uppercase tracking-wide text-ink-faint' }"
+              >
+                <UInput v-model="organization.name" placeholder="Nome" class="w-full" :ui="{ base: 'rounded' }" />
+              </UFormField>
+
+              <UFormField
+                label="ID do registro"
+                :ui="{ label: 'font-mono text-[11px] uppercase tracking-wide text-ink-faint' }"
+              >
+                <UInput
+                  :model-value="`ORG-${String(organization.id).padStart(4, '0')}`"
+                  disabled
+                  class="w-full"
+                  :ui="{ base: 'rounded font-mono' }"
+                />
+              </UFormField>
+
+              <UFormField
+                label="Quantidade de vagas"
+                :ui="{ label: 'font-mono text-[11px] uppercase tracking-wide text-ink-faint' }"
+              >
+                <UInput
+                  v-model="organization.vacanciesQuantity"
+                  type="number"
+                  placeholder="Qtd. vagas"
+                  class="w-full"
+                  :ui="{ base: 'rounded font-mono' }"
+                />
+              </UFormField>
+
+              <UFormField
+                label="Logo (URL)"
+                class="sm:col-span-2"
+                :ui="{ label: 'font-mono text-[11px] uppercase tracking-wide text-ink-faint' }"
+              >
+                <UInput
+                  v-model="organization.logo"
+                  placeholder="https://exemplo.com/logo.png"
+                  class="w-full"
+                  :ui="{ base: 'rounded' }"
+                />
+              </UFormField>
+            </div>
+          </div>
+        </section>
+
+        <section class="bg-surface border border-line rounded p-4 md:p-6 flex flex-col gap-4">
+          <div>
+            <h2 class="text-sm font-semibold text-ink flex items-center gap-1.5">
+              <Icon name="tabler:address-book" size="1rem" class="text-ink-faint" />
+              Informações de contato
+            </h2>
+            <p class="text-xs text-ink-muted mt-0.5">
+              Usadas para notificações e comunicação com sua organização.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4">
+            <UFormField
+              label="Endereço"
+              :ui="{ label: 'font-mono text-[11px] uppercase tracking-wide text-ink-faint' }"
+            >
+              <UInput v-model="organization.address" placeholder="Endereço" class="w-full" :ui="{ base: 'rounded' }" />
             </UFormField>
 
-            <UFormField label="ID da organização">
-              <UInput :model-value="organization.id" disabled class="w-full" />
-            </UFormField>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <UFormField
+                label="Telefone"
+                :ui="{ label: 'font-mono text-[11px] uppercase tracking-wide text-ink-faint' }"
+              >
+                <UInput
+                  v-model="organization.phone"
+                  placeholder="Telefone"
+                  icon="i-tabler-phone"
+                  class="w-full"
+                  :ui="{ base: 'rounded font-mono' }"
+                />
+              </UFormField>
 
-            <UFormField label="Quantidade de vagas">
-              <UInput
-                v-model="organization.vacanciesQuantity"
-                type="number"
-                placeholder="Qtd. vagas"
-                class="w-full"
-              />
-            </UFormField>
+              <UFormField
+                label="E-mail"
+                :ui="{ label: 'font-mono text-[11px] uppercase tracking-wide text-ink-faint' }"
+              >
+                <UInput
+                  v-model="organization.email"
+                  placeholder="E-mail"
+                  type="email"
+                  icon="i-tabler-at"
+                  class="w-full"
+                  :ui="{ base: 'rounded font-mono' }"
+                />
+              </UFormField>
+            </div>
+          </div>
+        </section>
 
-            <UFormField label="Endereço" class="md:col-span-2">
-              <UInput v-model="organization.address" placeholder="Endereço" class="w-full" />
-            </UFormField>
+        <section class="bg-surface border border-line rounded p-4 flex items-center justify-between gap-4">
+          <div class="flex items-center gap-2 text-ink-muted text-sm">
+            <span class="w-1.5 h-1.5 rounded-full bg-green-600 dark:bg-green-500 shrink-0"></span>
+            <span v-if="organization.updatedAt">
+              Última atualização em <span class="font-mono text-ink">{{ formatDateTime(organization.updatedAt) }}</span>
+            </span>
+            <span v-else>Sem alterações registradas ainda.</span>
+          </div>
 
-            <UFormField label="Telefone de contato">
-              <UInput v-model="organization.phone" placeholder="Telefone" class="w-full" />
-            </UFormField>
-
-            <UFormField label="E-mail">
-              <UInput v-model="organization.email" placeholder="E-mail" type="email" class="w-full" />
-            </UFormField>
-
-            <UFormField label="Logo (URL)" class="md:col-span-2">
-              <UInput
-                v-model="organization.logo"
-                placeholder="https://exemplo.com/logo.png"
-                class="w-full"
-              />
-            </UFormField>
-          </form>
-        </div>
-
-        <div class="flex items-center justify-end gap-2 pt-5 mt-5 border-t border-line">
-          <UButton
-            color="neutral"
-            :loading="loading"
-            label="Salvar alterações"
-            @click="updateOrg"
-          />
-        </div>
-      </section>
+          <div class="flex items-center gap-2 shrink-0">
+            <UButton color="neutral" variant="ghost" class="rounded" label="Cancelar" @click="getOrgInfo" />
+            <UButton
+              type="submit"
+              color="primary"
+              class="rounded"
+              icon="i-tabler-device-floppy"
+              :loading="loading"
+              label="Salvar alterações"
+            />
+          </div>
+        </section>
+      </form>
     </div>
   </div>
 </template>
@@ -86,6 +169,7 @@
 <script setup>
 const http = useApi();
 const toast = useToast();
+const organizationId = useCurrentOrganizationId();
 
 const loading = ref(false);
 const logoFailed = ref(false);
@@ -98,6 +182,8 @@ const organization = ref({
   email: "",
   logo: "",
   vacanciesQuantity: 0,
+  createdAt: null,
+  updatedAt: null,
 });
 
 const initials = computed(() =>
@@ -106,11 +192,22 @@ const initials = computed(() =>
     .split(/\s+/)
     .slice(0, 2)
     .map((w) => w[0]?.toUpperCase())
-    .join("") || "OZ"
+    .join("") || "?"
 );
 
+const formatDateTime = (value) =>
+  value
+    ? new Date(value).toLocaleString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "—";
+
 const getOrgInfo = async () => {
-  const { data, error } = await http.get("/organization/get-by-id/1");
+  const { data, error } = await http.get(`/organization/get-by-id/${organizationId.value}`);
 
   if (error.value) {
     toast.error({

@@ -1,64 +1,83 @@
 <template>
-  <section class="space-y-6">
-    <div>
-      <h2 class="font-display text-xl font-bold text-ink">
-        {{ isCheckin ? "Check-in" : "Check-out" }}
-      </h2>
-      <p class="text-sm text-ink-muted mt-0.5">
-        {{
-          isCheckin
-            ? "Registre a entrada de um veículo em uma vaga disponível."
-            : "Confirme a saída para liberar a vaga."
-        }}
-      </p>
+  <section class="space-y-5">
+    <div class="flex items-center gap-2">
+      <span
+        class="w-6 h-6 shrink-0 rounded bg-green-700 dark:bg-green-500 flex items-center justify-center text-white"
+      >
+        <Icon name="tabler:parking-circle" size="1rem" />
+      </span>
+      <div>
+        <h2 class="text-base font-semibold text-ink leading-tight">
+          {{ isCheckin ? "Novo check-in" : "Check-out" }}
+        </h2>
+        <p class="text-xs text-ink-muted">
+          {{
+            isCheckin
+              ? targetVacancyId
+                ? `Registrar entrada na vaga ${targetVacancyId}.`
+                : "Registre a entrada de um veículo em uma vaga disponível."
+              : "Confirme a saída para liberar a vaga."
+          }}
+        </p>
+      </div>
     </div>
 
-    <div class="grid sm:grid-cols-1 md:grid-cols-3 gap-4">
-      <UFormField label="Placa do veículo">
+    <div class="grid sm:grid-cols-1 md:grid-cols-3 gap-3">
+      <UFormField label="Placa do veículo" :ui="{ label: 'font-mono text-[11px] uppercase tracking-wide text-ink-faint' }">
         <UInput
           v-model="information.vehicle.plate"
           :disabled="!isCheckin"
           placeholder="ABC1D23"
           class="w-full"
+          :ui="{ base: 'font-mono uppercase tracking-widest rounded' }"
           @input="debounceSearch"
         />
       </UFormField>
 
-      <UFormField label="Cliente">
+      <UFormField label="Cliente" :ui="{ label: 'font-mono text-[11px] uppercase tracking-wide text-ink-faint' }">
         <USelect
           v-model="information.clientId"
           :items="clients"
+          :disabled="!clients || !clients.length"
           placeholder="Selecionar cliente"
           class="w-full"
+          :ui="{ base: 'rounded' }"
         />
       </UFormField>
 
-      <UFormField label="Hora de entrada">
+      <UFormField label="Hora de entrada" :ui="{ label: 'font-mono text-[11px] uppercase tracking-wide text-ink-faint' }">
         <UInput
           v-model="information.entryTime"
           :disabled="!isCheckin"
           type="time"
           class="w-full"
+          :ui="{ base: 'font-mono rounded' }"
         />
       </UFormField>
 
-      <UFormField v-if="!isCheckin" label="Hora de saída">
-        <UInput v-model="information.exitTime" type="time" class="w-full" />
+      <UFormField
+        v-if="!isCheckin"
+        label="Hora de saída"
+        :ui="{ label: 'font-mono text-[11px] uppercase tracking-wide text-ink-faint' }"
+      >
+        <UInput v-model="information.exitTime" type="time" class="w-full" :ui="{ base: 'font-mono rounded' }" />
       </UFormField>
     </div>
 
-    <UFormField label="Observação">
+    <UFormField label="Observação" :ui="{ label: 'font-mono text-[11px] uppercase tracking-wide text-ink-faint' }">
       <UInput
         v-model="information.observation"
         :disabled="!isCheckin"
         placeholder="Observações adicionais (opcional)"
         class="w-full"
+        :ui="{ base: 'rounded' }"
       />
     </UFormField>
 
-    <div class="flex items-center justify-end gap-2 pt-4 border-t border-line">
+    <div class="flex items-center justify-end gap-2 pt-3 border-t border-line">
       <UButton
-        color="neutral"
+        :color="isCheckin ? 'primary' : 'error'"
+        class="rounded"
         :loading="loading"
         :disabled="isDisabled"
         :label="isCheckin ? 'Confirmar check-in' : 'Confirmar check-out'"
@@ -76,6 +95,10 @@ const emit = defineEmits(["close", "update"]);
 const props = defineProps({
   infoProps: {
     type: Object,
+    default: null,
+  },
+  targetVacancyId: {
+    type: [Number, String],
     default: null,
   },
 });
@@ -114,7 +137,7 @@ const searchClientsByVehicle = async () => {
   }
 
   const { data, error } = await http.get(
-    `/dash/clients-based-on-vehicle/${plate}`
+    `/vehicle/clients-based-on-vehicle/${plate}`
   );
 
   if (error.value) {
@@ -193,9 +216,12 @@ const checkin = async () => {
     vehiclePlate: information.value.vehicle.plate.toUpperCase(),
     entryTime: timeToIso(information.value.entryTime),
     observation: information.value.observation,
-    collaboratorId: 1, // Assuming a static collaborator ID for now
-    organizationId: 1, // Assuming a static organization ID for now
+    // collaboratorId/organizationId are set server-side from the logged-in
+    // collaborator's own token — no need to (and no way to honestly) send
+    // them from here.
   };
+
+  if (props.targetVacancyId) model.vacancyId = Number(props.targetVacancyId);
 
   const { error } = await http.post("/parking-log/checkin", model);
 

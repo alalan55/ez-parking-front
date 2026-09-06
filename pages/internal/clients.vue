@@ -1,36 +1,71 @@
 <template>
   <div class="min-h-full p-4 md:p-6 overflow-y-auto">
     <div class="max-w-[1400px] mx-auto flex flex-col gap-4 md:gap-5 pb-24">
-      <div>
-        <h1 class="font-display text-2xl md:text-3xl font-bold text-ink tracking-tight">
-          Clientes
-        </h1>
-        <p class="text-ink-muted mt-1">
-          Gerencie os clientes e veículos cadastrados na sua organização.
-        </p>
-      </div>
+      <LayoutPageHeader
+        title="Clientes"
+        subtitle="Gerencie os clientes e veículos cadastrados na sua organização."
+      >
+        <template #actions>
+          <UButton
+            icon="i-tabler-download"
+            color="neutral"
+            variant="outline"
+            class="rounded"
+            @click="exportCsv"
+          >
+            <span class="hidden sm:inline">Exportar CSV</span>
+          </UButton>
+          <UButton
+            icon="i-tabler-plus"
+            color="primary"
+            class="rounded"
+            @click="openCreateClient"
+          >
+            Novo cliente
+          </UButton>
+        </template>
+      </LayoutPageHeader>
 
       <section>
         <div
-          class="flex flex-wrap items-stretch bg-surface border border-line rounded-2xl divide-x divide-line shadow-sm overflow-hidden"
+          class="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-line bg-surface border border-line rounded overflow-hidden"
         >
-          <div
-            v-for="stat in stats"
-            :key="stat.label"
-            class="flex items-center gap-3 px-4 sm:px-5 py-3.5 flex-1 min-w-[45%] sm:min-w-[160px]"
-          >
-            <span
-              class="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-white"
-              :class="stat.badgeClass"
-            >
-              <Icon :name="stat.icon" size="1.15rem" />
-            </span>
-            <div class="min-w-0">
-              <p class="text-xs text-ink-muted font-medium truncate">{{ stat.label }}</p>
-              <p class="text-lg font-bold text-ink leading-tight truncate">
-                {{ stat.value }}
-              </p>
+          <div class="p-4 flex flex-col justify-between">
+            <div class="flex items-center justify-between gap-2">
+              <p class="font-mono text-[11px] uppercase tracking-wide text-ink-faint">Total de clientes</p>
+              <Icon name="tabler:users" size="1rem" class="text-ink-faint" />
             </div>
+            <p class="text-2xl font-semibold text-ink mt-1">{{ clients.length }}</p>
+            <p class="text-xs text-ink-muted mt-2">cadastrados no sistema</p>
+          </div>
+
+          <div class="p-4 flex flex-col justify-between">
+            <div class="flex items-center justify-between gap-2">
+              <p class="font-mono text-[11px] uppercase tracking-wide text-ink-faint">Com veículo</p>
+              <span class="font-mono text-[11px] text-green-700 dark:text-green-500 font-semibold">{{ withVehiclePct }}%</span>
+            </div>
+            <p class="text-2xl font-semibold text-green-700 dark:text-green-500 mt-1">{{ withVehicleCount }}</p>
+            <p class="text-xs text-ink-muted mt-2">com placa vinculada</p>
+            <div class="h-1 mt-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+              <div
+                class="h-full rounded-full bg-green-600 dark:bg-green-500 transition-all duration-300"
+                :style="{ width: `${withVehiclePct}%` }"
+              ></div>
+            </div>
+          </div>
+
+          <div class="p-4 flex flex-col justify-between">
+            <div class="flex items-center justify-between gap-2">
+              <p class="font-mono text-[11px] uppercase tracking-wide text-ink-faint">Sem veículo</p>
+              <span
+                v-if="withoutVehicleCount > 0"
+                class="font-mono text-[11px] text-amber-600 dark:text-amber-500 font-semibold"
+              >
+                atenção
+              </span>
+            </div>
+            <p class="text-2xl font-semibold text-ink mt-1">{{ withoutVehicleCount }}</p>
+            <p class="text-xs text-ink-muted mt-2">cadastro pendente</p>
           </div>
         </div>
       </section>
@@ -39,53 +74,74 @@
         <div
           class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3"
         >
-          <div>
-            <h2 class="text-lg font-semibold text-ink">Registros</h2>
-            <p class="text-sm text-ink-muted">
+          <div class="flex items-center gap-2">
+            <h2 class="font-mono text-[11px] uppercase tracking-wide text-ink-faint">Registros</h2>
+            <span class="font-mono text-[11px] text-ink-faint border border-line rounded px-1.5 py-0.5">
               {{ clients.length }} cliente{{ clients.length === 1 ? "" : "s" }}
-            </p>
+            </span>
           </div>
 
-          <UInput
-            v-model="search"
-            icon="i-tabler-search"
-            placeholder="Pesquisar por nome"
-            class="w-full sm:w-[240px]"
-            @input="debouncedSearch"
-          />
+          <div class="flex items-center gap-2">
+            <UInput
+              v-model="search"
+              icon="i-tabler-search"
+              placeholder="Pesquisar por nome"
+              class="w-full sm:w-[240px]"
+              :ui="{ base: 'rounded' }"
+              @input="debouncedSearch"
+            />
+            <UButton
+              icon="i-tabler-refresh"
+              color="neutral"
+              variant="outline"
+              class="rounded"
+              :loading="loading"
+              @click="getClients()"
+            />
+          </div>
         </div>
 
-        <div class="bg-surface border border-line rounded-2xl shadow-sm overflow-hidden">
+        <div class="bg-surface border border-line rounded overflow-hidden">
           <UTable
             :data="clients"
             :columns="columns"
             :loading="loading"
-            :ui="{ thead: 'bg-slate-50 dark:bg-slate-800/60' }"
+            :ui="{ thead: 'bg-surface-2' }"
           >
             <template #name-cell="{ row }">
-              <span class="font-semibold text-ink">{{ row.original.name }}</span>
+              <div class="flex items-center gap-2.5">
+                <span
+                  class="w-7 h-7 shrink-0 rounded bg-surface-2 border border-line flex items-center justify-center font-mono text-[11px] font-semibold text-ink"
+                >
+                  {{ initials(row.original.name) }}
+                </span>
+                <div class="min-w-0">
+                  <p class="font-semibold text-ink truncate">{{ row.original.name }}</p>
+                  <p class="font-mono text-[10px] text-ink-faint">ID: {{ row.original.id }}</p>
+                </div>
+              </div>
             </template>
 
             <template #phone-cell="{ row }">
-              <span :class="{ 'text-ink-faint': !row.original.phone }">
+              <span class="font-mono text-xs" :class="{ 'text-ink-faint': !row.original.phone }">
                 {{ row.original.phone || "—" }}
               </span>
             </template>
 
             <template #vehicles-cell="{ row }">
-              <UBadge
+              <span
                 v-if="row.original.vehicles?.length"
-                color="neutral"
-                variant="subtle"
+                class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded border border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-400 text-[11px] font-semibold"
               >
+                <Icon name="tabler:car" size="0.85rem" />
                 {{ row.original.vehicles.length }}
                 veículo{{ row.original.vehicles.length === 1 ? "" : "s" }}
-              </UBadge>
-              <span v-else class="text-ink-faint">—</span>
+              </span>
+              <span v-else class="font-mono text-[11px] text-ink-faint">— Sem veículo</span>
             </template>
 
             <template #createdAt-cell="{ row }">
-              <span class="text-ink-muted">
+              <span class="font-mono text-xs text-ink-muted">
                 {{ formatDate(row.original.createdAt) }}
               </span>
             </template>
@@ -98,6 +154,7 @@
                   variant="ghost"
                   size="sm"
                   square
+                  class="rounded"
                   @click="openEditClient(row.original)"
                 />
                 <UButton
@@ -106,6 +163,7 @@
                   variant="ghost"
                   size="sm"
                   square
+                  class="rounded"
                   @click="openRemoveClient(row.original)"
                 />
               </div>
@@ -118,15 +176,19 @@
               </div>
             </template>
           </UTable>
+
+          <div class="px-3 py-2 border-t border-line flex items-center justify-between text-xs text-ink-faint">
+            <span class="font-mono">Exibindo {{ clients.length }} de {{ clients.length }} clientes</span>
+          </div>
         </div>
       </section>
     </div>
 
-    <UModal v-model:open="clientDialog" :ui="{ content: 'max-w-3xl w-full' }">
+    <UModal v-model:open="clientDialog" :ui="{ content: 'max-w-3xl w-full rounded' }">
       <template #body>
         <section class="space-y-5">
           <div>
-            <h2 class="font-display text-xl font-bold text-ink">
+            <h2 class="text-lg font-semibold text-ink">
               {{ isEditing ? "Atualizar cliente" : "Adicionar cliente" }}
             </h2>
             <p class="text-sm text-ink-muted mt-0.5">
@@ -140,13 +202,13 @@
 
           <div
             v-if="isEditing"
-            class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 border border-line rounded-full p-1 w-fit"
+            class="flex items-center gap-1 bg-surface-2 border border-line rounded p-0.5 w-fit"
           >
             <UButton
               size="sm"
               color="neutral"
               :variant="modalTab === 0 ? 'solid' : 'ghost'"
-              class="rounded-full"
+              class="rounded"
               @click="modalTab = 0"
             >
               Cliente
@@ -155,7 +217,7 @@
               size="sm"
               color="neutral"
               :variant="modalTab === 1 ? 'solid' : 'ghost'"
-              class="rounded-full"
+              class="rounded"
               @click="modalTab = 1"
             >
               Veículos
@@ -164,19 +226,20 @@
 
           <section v-show="modalTab === 0" class="space-y-5">
             <div class="grid sm:grid-cols-1 md:grid-cols-2 gap-4">
-              <UFormField label="Nome">
-                <UInput v-model="client.name" placeholder="Nome do cliente" class="w-full" />
+              <UFormField label="Nome" :ui="{ label: 'font-mono text-[11px] uppercase tracking-wide text-ink-faint' }">
+                <UInput v-model="client.name" placeholder="Nome do cliente" class="w-full" :ui="{ base: 'rounded' }" />
               </UFormField>
 
-              <UFormField label="Telefone">
-                <UInput v-model="client.phone" placeholder="(11) 98888-7777" class="w-full" />
+              <UFormField label="Telefone" :ui="{ label: 'font-mono text-[11px] uppercase tracking-wide text-ink-faint' }">
+                <UInput v-model="client.phone" placeholder="(11) 98888-7777" class="w-full" :ui="{ base: 'rounded' }" />
               </UFormField>
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-4 border-t border-line">
-              <UButton color="neutral" variant="ghost" label="Cancelar" @click="clientDialog = false" />
+              <UButton color="neutral" variant="ghost" class="rounded" label="Cancelar" @click="clientDialog = false" />
               <UButton
-                color="neutral"
+                color="primary"
+                class="rounded"
                 :loading="loadingClient"
                 :label="isEditing ? 'Atualizar' : 'Adicionar'"
                 @click="isEditing ? updateClient() : createClient()"
@@ -193,19 +256,19 @@
                 <div
                   v-for="vehicle in clientVehicles"
                   :key="vehicle.id"
-                  class="p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-line rounded-xl"
+                  class="p-3.5 bg-surface-2 border border-line rounded"
                 >
                   <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
-                      <p class="font-mono font-bold text-ink">
+                      <p class="font-mono font-bold text-ink tracking-wider">
                         {{ vehicle.plate?.toUpperCase() }}
                       </p>
                       <p class="text-xs text-ink-muted mt-1">
                         {{ [vehicle.mark, vehicle.model, vehicle.year, vehicle.color].filter(Boolean).join(" · ") }}
                       </p>
-                      <UBadge color="neutral" variant="subtle" class="mt-2">
+                      <span class="inline-flex items-center px-1.5 py-0.5 rounded border border-line bg-surface font-mono text-[10px] text-ink-muted mt-2">
                         {{ vehicleType[vehicle.type] }}
-                      </UBadge>
+                      </span>
                     </div>
                     <div class="flex items-center gap-1 shrink-0">
                       <UButton
@@ -214,6 +277,7 @@
                         variant="ghost"
                         size="xs"
                         square
+                        class="rounded"
                         @click="setVehicleToUpdate(vehicle)"
                       />
                       <UButton
@@ -222,6 +286,7 @@
                         variant="ghost"
                         size="xs"
                         square
+                        class="rounded"
                         @click="setVehicleToRemove(vehicle)"
                       />
                     </div>
@@ -238,42 +303,44 @@
               </div>
 
               <div class="flex items-center justify-end gap-2 pt-4 border-t border-line mt-4">
-                <UButton color="neutral" variant="ghost" label="Fechar" @click="clientDialog = false" />
-                <UButton color="neutral" icon="i-tabler-plus" label="Novo veículo" @click="isAddingVehicle = true" />
+                <UButton color="neutral" variant="ghost" class="rounded" label="Fechar" @click="clientDialog = false" />
+                <UButton color="primary" class="rounded" icon="i-tabler-plus" label="Novo veículo" @click="isAddingVehicle = true" />
               </div>
             </div>
 
             <div v-show="isAddingVehicle || isUpdatingVehicle" class="space-y-5">
               <div class="grid sm:grid-cols-1 md:grid-cols-2 gap-4">
-                <UFormField label="Placa">
-                  <UInput v-model="newVehicle.plate" placeholder="ABC1D23" class="w-full" />
+                <UFormField label="Placa" :ui="{ label: 'font-mono text-[11px] uppercase tracking-wide text-ink-faint' }">
+                  <UInput v-model="newVehicle.plate" placeholder="ABC1D23" class="w-full" :ui="{ base: 'font-mono uppercase tracking-widest rounded' }" />
                 </UFormField>
-                <UFormField label="Marca">
-                  <UInput v-model="newVehicle.mark" placeholder="Marca" class="w-full" />
+                <UFormField label="Marca" :ui="{ label: 'font-mono text-[11px] uppercase tracking-wide text-ink-faint' }">
+                  <UInput v-model="newVehicle.mark" placeholder="Marca" class="w-full" :ui="{ base: 'rounded' }" />
                 </UFormField>
-                <UFormField label="Modelo">
-                  <UInput v-model="newVehicle.model" placeholder="Modelo" class="w-full" />
+                <UFormField label="Modelo" :ui="{ label: 'font-mono text-[11px] uppercase tracking-wide text-ink-faint' }">
+                  <UInput v-model="newVehicle.model" placeholder="Modelo" class="w-full" :ui="{ base: 'rounded' }" />
                 </UFormField>
-                <UFormField label="Ano">
-                  <UInput v-model="newVehicle.year" type="number" placeholder="Ano" class="w-full" />
+                <UFormField label="Ano" :ui="{ label: 'font-mono text-[11px] uppercase tracking-wide text-ink-faint' }">
+                  <UInput v-model="newVehicle.year" type="number" placeholder="Ano" class="w-full" :ui="{ base: 'font-mono rounded' }" />
                 </UFormField>
-                <UFormField label="Cor">
-                  <UInput v-model="newVehicle.color" placeholder="Cor" class="w-full" />
+                <UFormField label="Cor" :ui="{ label: 'font-mono text-[11px] uppercase tracking-wide text-ink-faint' }">
+                  <UInput v-model="newVehicle.color" placeholder="Cor" class="w-full" :ui="{ base: 'rounded' }" />
                 </UFormField>
-                <UFormField label="Tipo">
+                <UFormField label="Tipo" :ui="{ label: 'font-mono text-[11px] uppercase tracking-wide text-ink-faint' }">
                   <USelect
                     v-model="newVehicle.type"
                     :items="vehicleTypesOptions"
                     placeholder="Selecione o tipo"
                     class="w-full"
+                    :ui="{ base: 'rounded' }"
                   />
                 </UFormField>
               </div>
 
               <div class="flex items-center justify-end gap-2 pt-4 border-t border-line">
-                <UButton color="neutral" variant="ghost" label="Cancelar" @click="resetAddVehicle" />
+                <UButton color="neutral" variant="ghost" class="rounded" label="Cancelar" @click="resetAddVehicle" />
                 <UButton
-                  color="neutral"
+                  color="primary"
+                  class="rounded"
                   :loading="loadingVehicle"
                   :label="isUpdatingVehicle ? 'Atualizar' : 'Adicionar'"
                   @click="isUpdatingVehicle ? updateVehicle() : addNewVehicle()"
@@ -285,11 +352,11 @@
       </template>
     </UModal>
 
-    <UModal v-model:open="removeClientDialog" :ui="{ content: 'max-w-md w-full' }">
+    <UModal v-model:open="removeClientDialog" :ui="{ content: 'max-w-md w-full rounded' }">
       <template #body>
         <section class="space-y-4">
           <div>
-            <h2 class="font-display text-lg font-bold text-ink">Remover cliente</h2>
+            <h2 class="text-base font-semibold text-ink">Remover cliente</h2>
             <p class="text-sm text-ink-muted mt-1">
               Tem certeza que deseja remover
               <strong class="text-ink">{{ clientToRemove?.name }}</strong>? Esta ação não
@@ -297,40 +364,38 @@
             </p>
           </div>
           <div class="flex items-center justify-end gap-2">
-            <UButton color="neutral" variant="ghost" label="Cancelar" @click="removeClientDialog = false" />
-            <UButton color="error" :loading="loadingRemoveClient" label="Remover" @click="confirmRemoveClient" />
+            <UButton color="neutral" variant="ghost" class="rounded" label="Cancelar" @click="removeClientDialog = false" />
+            <UButton color="error" class="rounded" :loading="loadingRemoveClient" label="Remover" @click="confirmRemoveClient" />
           </div>
         </section>
       </template>
     </UModal>
 
-    <UModal v-model:open="removeVehicleDialog" :ui="{ content: 'max-w-md w-full' }">
+    <UModal v-model:open="removeVehicleDialog" :ui="{ content: 'max-w-md w-full rounded' }">
       <template #body>
         <section class="space-y-4">
           <div>
-            <h2 class="font-display text-lg font-bold text-ink">Remover veículo</h2>
+            <h2 class="text-base font-semibold text-ink">Remover veículo</h2>
             <p class="text-sm text-ink-muted mt-1">
               Tem certeza que deseja remover o veículo
               <strong class="font-mono text-ink">{{ vehicleToRemove?.plate?.toUpperCase() }}</strong>?
             </p>
           </div>
           <div class="flex items-center justify-end gap-2">
-            <UButton color="neutral" variant="ghost" label="Cancelar" @click="removeVehicleDialog = false" />
-            <UButton color="error" :loading="loadingRemoveVehicle" label="Remover" @click="confirmRemoveVehicle" />
+            <UButton color="neutral" variant="ghost" class="rounded" label="Cancelar" @click="removeVehicleDialog = false" />
+            <UButton color="error" class="rounded" :loading="loadingRemoveVehicle" label="Remover" @click="confirmRemoveVehicle" />
           </div>
         </section>
       </template>
     </UModal>
 
     <UButton
-      class="fixed bottom-5 right-5 md:bottom-10 md:right-10 rounded-full shadow-lg shadow-slate-900/15"
-      color="neutral"
+      class="lg:hidden fixed bottom-5 right-5 rounded-full"
+      color="primary"
       size="xl"
       icon="i-tabler-plus"
       @click="openCreateClient"
-    >
-      <span class="hidden sm:inline">Novo cliente</span>
-    </UButton>
+    />
   </div>
 </template>
 
@@ -339,6 +404,7 @@ import { useDebounceFn } from "@vueuse/core";
 
 const http = useApi();
 const toast = useToast();
+const organizationId = useCurrentOrganizationId();
 
 const loading = ref(false);
 const search = ref("");
@@ -390,39 +456,32 @@ const vehicleTypesOptions = [
 ];
 
 const columns = [
-  { accessorKey: "name", header: "Nome" },
+  { accessorKey: "name", header: "Cliente" },
   { accessorKey: "phone", header: "Telefone" },
   { id: "vehicles", header: "Veículos" },
   { accessorKey: "createdAt", header: "Registrado em" },
   { id: "actions", header: "" },
 ];
 
-const stats = computed(() => {
-  const totalVehicles = clients.value.reduce(
-    (acc, c) => acc + (c.vehicles?.length || 0),
-    0
-  );
-  return [
-    {
-      label: "Total de clientes",
-      value: clients.value.length,
-      icon: "tabler:users",
-      badgeClass: "bg-gradient-to-br from-violet-500 to-violet-600 shadow-sm shadow-violet-500/30",
-    },
-    {
-      label: "Veículos cadastrados",
-      value: totalVehicles,
-      icon: "iconoir:car",
-      badgeClass: "bg-gradient-to-br from-teal-500 to-teal-600 shadow-sm shadow-teal-500/30",
-    },
-    {
-      label: "Sem veículo",
-      value: clients.value.filter((c) => !c.vehicles?.length).length,
-      icon: "tabler:car-off",
-      badgeClass: "bg-gradient-to-br from-slate-500 to-slate-600 shadow-sm shadow-slate-500/30",
-    },
-  ];
-});
+const withVehicleCount = computed(
+  () => clients.value.filter((c) => c.vehicles?.length).length
+);
+const withoutVehicleCount = computed(
+  () => clients.value.length - withVehicleCount.value
+);
+const withVehiclePct = computed(() =>
+  clients.value.length ? Math.round((withVehicleCount.value / clients.value.length) * 100) : 0
+);
+
+const initials = (name) => {
+  const words = (name || "").trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return "?";
+  // Single-word names (the common case here) use their first two letters
+  // instead of colliding on one — "Alan"/"Amanda" both becoming "A" was a
+  // real bug found in testing.
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return words.slice(0, 2).map((w) => w[0].toUpperCase()).join("");
+};
 
 const formatDate = (value) =>
   value ? new Date(value).toLocaleDateString("pt-BR") : "—";
@@ -434,7 +493,7 @@ const debouncedSearch = useDebounceFn(() => {
 const getClients = async () => {
   loading.value = true;
 
-  const { data, error } = await http.get("/client/get-all-by-organization/1", {
+  const { data, error } = await http.get(`/client/get-all-by-organization/${organizationId.value}`, {
     params: { name: search.value },
   });
 
@@ -449,6 +508,35 @@ const getClients = async () => {
 
   clients.value = data.value.content;
   loading.value = false;
+};
+
+const csvEscape = (value) => {
+  const str = String(value ?? "");
+  return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+};
+
+const exportCsv = () => {
+  const header = ["ID", "Nome", "Telefone", "Veículos", "Registrado em"];
+  const rows = clients.value.map((c) => [
+    c.id,
+    c.name,
+    c.phone || "",
+    c.vehicles?.length || 0,
+    formatDate(c.createdAt),
+  ]);
+
+  const csv = [header, ...rows].map((r) => r.map(csvEscape).join(",")).join("\n");
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `ez-parking-clientes-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  toast.success({ title: "Sucesso", message: "CSV exportado com sucesso." });
 };
 
 const resetAddVehicle = () => {
@@ -473,7 +561,7 @@ const openCreateClient = () => {
 };
 
 const getVehiclesFromClient = async (clientId) => {
-  const { data, error } = await http.get(`/vehicle/get-all-by-client/${clientId}/1`);
+  const { data, error } = await http.get(`/vehicle/get-all-by-client/${clientId}/${organizationId.value}`);
 
   if (error.value) {
     toast.error({
@@ -503,10 +591,8 @@ const createClient = async () => {
 
   loadingClient.value = true;
 
-  const { error } = await http.post("/client", {
-    ...client.value,
-    organizationId: 1,
-  });
+  // organizationId is set server-side from the caller's own token.
+  const { error } = await http.post("/client", { ...client.value });
 
   loadingClient.value = false;
 
@@ -557,7 +643,7 @@ const confirmRemoveClient = async () => {
   loadingRemoveClient.value = true;
 
   const { error } = await http.delete(
-    `/client/delete-from-organization/1/${clientToRemove.value.id}`
+    `/client/delete-from-organization/${organizationId.value}/${clientToRemove.value.id}`
   );
 
   loadingRemoveClient.value = false;
@@ -589,10 +675,10 @@ const addNewVehicle = async () => {
 
   loadingVehicle.value = true;
 
+  // organizationId is set server-side from the caller's own token.
   const { data, error } = await http.post("/client/add-vehicle", {
     ...newVehicle.value,
     userId: currentClient.value.id,
-    organizationId: 1,
   });
 
   loadingVehicle.value = false;

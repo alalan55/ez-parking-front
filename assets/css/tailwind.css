@@ -12,51 +12,71 @@
 /*
   Design tokens — the app's defined UI system. New screens should reach for
   these (text-ink, bg-page, border-line, …) instead of one-off arbitrary hex
-  values. Semantic status colors (available/occupied/etc) stay as plain
-  Tailwind palette colors (emerald/rose/amber/blue) since those already carry
-  meaning on their own, but need explicit `dark:` pairs where used — Tailwind's
-  palette itself doesn't auto-adapt.
+  values.
+
+  Palette v2 ("Terminal Operational Console"): moved off the violet/teal
+  SaaS-template pair to an industrial console aesthetic — dense, hairline
+  borders, no ambient shadows, no pill shapes. Dark-mode values are pulled
+  verbatim from our own Stitch project's design-system spec (read via the
+  Stitch MCP connector, `mcp__stitch__get_project`) — same family as GitHub's
+  Primer dark theme. Light mode has no equivalent spec yet (the Stitch project
+  is dark-only) — its values are our own derivation, kept in the same hue
+  family at adjusted lightness, and open to revision if a real light spec
+  shows up later.
 */
 @theme {
-  --color-ink: #0d151c;
-  --color-ink-muted: #5c748a;
-  --color-ink-faint: #94a3b8;
+  --color-ink: #1f2328;
+  --color-ink-muted: #59636e;
+  --color-ink-faint: #6e7781;
   --color-surface: #ffffff;
-  --color-page: #f9f8fd;
-  --color-line: #e5e9ef;
+  --color-surface-2: #f0f2f4;
+  --color-page: #f6f8fa;
+  --color-line: #d0d7de;
+
+  /* Brand pair: green is primary (active states, primary metric, main CTAs),
+     blue is the secondary/informational accent. --color-brand-soft is a flat
+     low-opacity tint for active-nav backgrounds — a plain rgba() literal per
+     mode (not color-mix(), which silently drops the whole declaration on
+     browsers that don't support it). */
+  --color-brand: #15803d;
+  --color-brand-2: #0284c7;
+  --color-brand-soft: rgba(21, 128, 61, 0.1);
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
 
   /*
-    Brand pair: violet is primary (active states, primary metric, main CTAs),
-    teal is the secondary/complementary accent (brand mark, sparing highlights)
-    — not a semantic color, don't reuse it for status. Tailwind's violet-500 /
-    teal-500 by value, kept as named tokens so the pairing is documented once.
+    Type system, per the Stitch spec: Inter for everything administrative
+    (headlines, body — no separate "display" face; the spec explicitly caps
+    hierarchy at 24px instead of leaning on a distinct headline font).
+    JetBrains Mono is enforced for every piece of *dynamic operational data*:
+    plates, timestamps, dwell durations, currency — so figures stay tabular
+    and align vertically in dense tables.
   */
-  --color-brand: #8b5cf6;
-  --color-brand-2: #14b8a6;
-
-  /*
-    Type system: Geist carries body/UI text (dense tables, plates, currency —
-    needs to stay crisp at small sizes and have clean tabular numerals).
-    Space Grotesk is reserved for the brand mark and page-level headings only
-    (font-display) — it's what gives the app personality; using it everywhere
-    made small text feel less legible.
-  */
-  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
 }
 
 /*
-  Dark palette — same token names, different values. Because every custom
-  utility (text-ink, bg-page, border-line, bg-surface) reads from these CSS
-  variables rather than a hard-coded color, this is the only place most of the
-  app needs to adapt. Plain Tailwind-palette colors (bg-emerald-50, bg-rose-50,
-  bg-slate-100, …) still need explicit `dark:` variants at their call sites.
+  Dark palette — exact values from the Stitch design-system spec ("Terminal
+  Operational Console"). Because every custom utility (text-ink, bg-page,
+  border-line, bg-surface) reads from these CSS variables rather than a
+  hard-coded color, this is the only place most of the app needs to adapt.
+  Plain Tailwind-palette colors (bg-emerald-50, bg-rose-50, …) still need
+  explicit `dark:` variants at their call sites.
 */
 .dark {
-  --color-ink: #f1f5f9;
-  --color-ink-muted: #94a3b8;
-  --color-ink-faint: #64748b;
-  --color-surface: #1a2233;
-  --color-page: #120f1e;
-  --color-line: #2a3344;
+  --color-ink: #f0f6fc;
+  --color-ink-muted: #8b949e;
+  --color-ink-faint: #484f58;
+  --color-surface: #161b22;
+  --color-surface-2: #21262d;
+  --color-page: #0d1117;
+  --color-line: #30363d;
+
+  --color-brand: #3fb950;
+  --color-brand-2: #58a6ff;
+  --color-brand-soft: rgba(46, 160, 67, 0.15);
+  --color-warning: #d29922;
+  --color-danger: #f85149;
 }

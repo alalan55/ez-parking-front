@@ -5,10 +5,23 @@
 </template>
 
 <style scoped lang="postcss">
+/*
+  Flat "Terminal Operational Console" background — a faint technical grid
+  instead of the old violet/teal ambient glow (gradients/glow are against the
+  design language used everywhere else in the app now).
+*/
 .auth-bg {
-  background:
-    radial-gradient(900px circle at 15% 10%, rgba(139, 92, 246, 0.12), transparent 55%),
-    radial-gradient(900px circle at 85% 90%, rgba(20, 184, 166, 0.1), transparent 55%),
-    var(--color-page);
+  background-color: var(--color-page);
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: center;
+}
+
+.dark .auth-bg {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
 }
 </style>

@@ -10,6 +10,11 @@
 </template>
 <script setup>
 const collapsed = useSidebarCollapsed();
+
+// Restores the real session (organizationId, role) from the token before any
+// child page runs its own org-scoped fetches — see useCurrentOrganization().
+const { fetchMe } = useAuth();
+await fetchMe();
 </script>
 
 <style scoped lang="postcss">
@@ -18,15 +23,7 @@ const collapsed = useSidebarCollapsed();
   padding-top: 92px;
   box-sizing: border-box;
   overflow: auto;
-  background:
-    radial-gradient(1100px circle at 85% 0%, rgba(124, 58, 237, 0.08), transparent 60%),
-    var(--color-page);
-}
-
-:global(.dark) .content {
-  background:
-    radial-gradient(1100px circle at 85% 0%, rgba(167, 139, 250, 0.12), transparent 60%),
-    var(--color-page);
+  background: var(--color-page);
 }
 
 @media (min-width: 768px) {

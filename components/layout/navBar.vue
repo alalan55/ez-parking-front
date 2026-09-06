@@ -1,11 +1,11 @@
 <template>
   <header class="fixed top-3 sm:top-4 inset-x-3 sm:inset-x-4 z-50 flex justify-center">
     <nav
-      class="relative w-full max-w-[1300px] h-16 flex items-center justify-between gap-4 px-4 sm:px-5 rounded-full border border-line bg-surface/90 backdrop-blur-md shadow-[0_8px_30px_-12px_rgba(15,23,42,0.15)] overflow-hidden isolate"
+      class="relative w-full max-w-[1300px] h-14 flex items-center justify-between gap-4 px-4 sm:px-5 rounded-lg border border-line bg-surface shadow-sm overflow-hidden isolate"
     >
       <div class="flex items-center shrink-0">
         <div
-          class="w-7 h-7 shrink-0 rounded-lg bg-gradient-to-br from-violet-500 to-teal-500 shadow-sm shadow-violet-500/30 flex items-center justify-center text-white p-1.5"
+          class="w-6 h-6 shrink-0 rounded bg-green-700 dark:bg-green-500 flex items-center justify-center text-white p-1"
         >
           <svg
             viewBox="0 0 48 48"
@@ -31,7 +31,7 @@
             </defs>
           </svg>
         </div>
-        <span class="font-display text-lg font-bold ml-2 text-ink">Ez-parking</span>
+        <span class="text-base font-semibold ml-2 text-ink">Ez-parking</span>
       </div>
 
       <div class="flex items-center">
@@ -43,7 +43,7 @@
         />
 
         <Teleport to="body" :disabled="isDesktop">
-          <div ref="menu" class="menu flex items-center gap-1 shadow-2xl md:shadow-none">
+          <div ref="menu" class="menu flex items-center gap-1">
             <template v-for="link in links" :key="link.name">
               <NuxtLink
                 :to="link.path"
@@ -67,14 +67,13 @@
               </NuxtLink>
             </template>
 
-            <div class="flex items-center gap-2 md:ml-2 md:pl-3 md:border-l md:border-line">
+            <div class="flex items-center gap-1 md:ml-2 md:pl-3 md:border-l md:border-line">
               <ClientOnly>
                 <UButton
                   :icon="isDark ? 'i-tabler-sun' : 'i-tabler-moon'"
                   color="neutral"
                   variant="ghost"
-                  class="rounded-full"
-                  :ui="{ base: 'rounded-full' }"
+                  class="rounded"
                   :aria-label="isDark ? 'Ativar tema claro' : 'Ativar tema escuro'"
                   @click="toggleColorMode"
                 />
@@ -83,8 +82,7 @@
                     icon="i-tabler-moon"
                     color="neutral"
                     variant="ghost"
-                    class="rounded-full"
-                    :ui="{ base: 'rounded-full' }"
+                    class="rounded"
                     disabled
                   />
                 </template>
@@ -94,11 +92,26 @@
                 icon="i-tabler-bell"
                 color="neutral"
                 variant="ghost"
-                class="rounded-full"
-                :ui="{ base: 'rounded-full' }"
+                class="rounded"
               />
 
-              <figure class="w-8 h-8 shrink-0 rounded-full bg-slate-300 dark:bg-slate-600"></figure>
+              <div
+                v-if="organizationInitials"
+                class="w-7 h-7 shrink-0 rounded bg-green-500/10 border border-green-500/30 text-green-700 dark:text-green-400 text-[11px] font-bold flex items-center justify-center ml-1"
+                :title="organizationName"
+              >
+                {{ organizationInitials }}
+              </div>
+
+              <UButton
+                icon="i-tabler-logout"
+                color="neutral"
+                variant="ghost"
+                class="rounded"
+                aria-label="Encerrar sessão"
+                title="Encerrar sessão"
+                @click="handleLogout"
+              />
             </div>
           </div>
         </Teleport>
@@ -134,11 +147,26 @@ const toggleColorMode = () => {
   colorMode.preference = isDark.value ? "light" : "dark";
 };
 
+const { name: organizationName, initials: organizationInitials, fetchOrganizationName } =
+  useOrganizationName();
+
+const { logout } = useAuth();
+const handleLogout = async () => {
+  logout();
+  await navigateTo("/auth/login");
+};
+
+onMounted(() => {
+  fetchOrganizationName();
+});
+
 const links = [
   { name: "Home", path: "/internal" },
   { name: "Métricas", path: "/internal/metrics" },
   { name: "Clientes", path: "/internal/clients" },
+  { name: "Auditoria", path: "/internal/audit" },
   { name: "Organização", path: "/internal/organization" },
+  { name: "Colaboradores", path: "/internal/collaborators" },
 ];
 
 const handleClickmenu = () => {
@@ -161,8 +189,8 @@ watch(
 .link {
   position: relative;
   text-decoration: none;
-  padding: 0.55rem 1rem;
-  border-radius: 9999px;
+  padding: 0.5rem 0.85rem;
+  border-radius: 0.375rem;
   font-weight: 500;
   color: var(--color-ink-muted);
   transition:
@@ -181,7 +209,7 @@ watch(
 
 .router-link-exact-active,
 .router-link-exact-active:hover {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(20, 184, 166, 0.12));
+  background: var(--color-brand-soft);
   color: var(--color-ink);
   font-weight: 600;
 }
@@ -195,21 +223,21 @@ watch(
   width: 3px;
   height: 55%;
   border-radius: 999px;
-  background: linear-gradient(rgb(139, 92, 246), rgb(20, 184, 166));
+  background: var(--color-brand);
 }
 
 @media (max-width: 768px) {
   .menu {
     position: fixed;
     background: var(--color-surface);
-    top: 88px;
+    top: 76px;
     right: 0.75rem;
     bottom: 0.75rem;
     left: 150%;
     z-index: 123;
-    border-radius: 1.5rem;
+    border-radius: 0.5rem;
     border: 1px solid var(--color-line);
-    box-shadow: 0 20px 40px -14px rgba(15, 23, 42, 0.25);
+    box-shadow: 0 4px 16px -8px rgba(15, 23, 42, 0.2);
     transition: left ease-in-out 0.3s;
     flex-direction: column;
     align-items: stretch;

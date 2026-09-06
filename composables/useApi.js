@@ -4,8 +4,6 @@ export const useApi = () => {
   const config = useRuntimeConfig();
   const baseURL = config.public.apiUrl;
 
-  const token = "3|ApR8KMcqBIE21uiiHeHWtGhm6DuXjKynkd0SKmwLf37bb57a";
-
   // Função que lida com as requisições HTTP usando $fetch
   const handleRequest = async (
     method,
@@ -20,11 +18,16 @@ export const useApi = () => {
     try {
       loading.value = true;
 
+      // Real session token (set by useAuth on login/register), not sent at
+      // all for the two endpoints that don't need one yet (/auth/login,
+      // /auth/register themselves).
+      const token = useCookie("ez_token").value;
+
       const fetchOptions = {
         method,
         baseURL,
         headers: {
-          Authorization: `Bearer ${token ?? localStorage.getItem("sessionToken")}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
           "Content-Type": "application/json",
           ...(options.headers || {}),
         },
@@ -37,6 +40,12 @@ export const useApi = () => {
 
       data.value = await $fetch(endpoint, fetchOptions);
     } catch (err) {
+      // An expired/invalid token is worth clearing right away so the app
+      // doesn't keep sending it — the next navigation to an /internal page
+      // will bounce to /auth/login via middleware/auth.global.js.
+      if (err?.response?.status === 401) {
+        useCookie("ez_token").value = null;
+      }
       error.value = err?.data || err?.message || "An unknown error occurred";
     } finally {
       loading.value = false;

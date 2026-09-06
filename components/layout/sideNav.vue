@@ -1,15 +1,15 @@
 <template>
   <aside
-    class="fixed top-4 left-4 bottom-4 z-40 flex flex-col bg-surface border border-line rounded-2xl shadow-lg shadow-slate-900/10 overflow-visible transition-[width] duration-200"
+    class="fixed top-3 left-3 bottom-3 z-40 flex flex-col bg-surface border border-line rounded-lg shadow-sm overflow-visible transition-[width] duration-200"
     :class="collapsed ? 'w-16' : 'w-64'"
   >
-    <div class="relative h-full flex flex-col rounded-2xl overflow-hidden">
+    <div class="relative h-full flex flex-col rounded-lg overflow-hidden">
       <div
-        class="h-16 shrink-0 flex items-center gap-2 border-b border-line"
-        :class="collapsed ? 'justify-center px-0' : 'px-5'"
+        class="h-14 shrink-0 flex items-center gap-2 border-b border-line"
+        :class="collapsed ? 'justify-center px-0' : 'px-4'"
       >
         <div
-          class="w-7 h-7 shrink-0 rounded-lg bg-gradient-to-br from-violet-500 to-teal-500 shadow-sm shadow-violet-500/30 flex items-center justify-center text-white p-1.5"
+          class="w-6 h-6 shrink-0 rounded bg-green-700 dark:bg-green-500 flex items-center justify-center text-white p-1"
         >
           <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
             <g clip-path="url(#clip0_side_543)">
@@ -33,15 +33,25 @@
         </div>
         <span
           v-if="!collapsed"
-          class="font-display text-base font-bold text-ink whitespace-nowrap"
+          class="text-sm font-semibold text-ink whitespace-nowrap"
         >
           Ez-parking
         </span>
       </div>
 
+      <div
+        v-if="!collapsed"
+        class="shrink-0 px-4 py-2 border-b border-line flex items-center gap-1.5"
+      >
+        <span class="w-1.5 h-1.5 rounded-full bg-green-600 dark:bg-green-500 shrink-0"></span>
+        <span class="font-mono text-[10px] uppercase tracking-wide text-ink-faint truncate">
+          Sistema online
+        </span>
+      </div>
+
       <nav
-        class="flex-1 overflow-y-auto py-4 space-y-1"
-        :class="collapsed ? 'px-2' : 'px-3'"
+        class="flex-1 overflow-y-auto py-3 space-y-0.5"
+        :class="collapsed ? 'px-2' : 'px-2.5'"
       >
         <NuxtLink
           v-for="link in links"
@@ -51,23 +61,22 @@
           :class="{ 'justify-center px-0': collapsed }"
           :title="collapsed ? link.name : undefined"
         >
-          <Icon :name="link.icon" size="1.15rem" class="shrink-0" />
+          <Icon :name="link.icon" size="1.1rem" class="shrink-0" />
           <span v-if="!collapsed" class="whitespace-nowrap">{{ link.name }}</span>
         </NuxtLink>
       </nav>
 
       <div
-        class="shrink-0 border-t border-line p-3 flex items-center"
+        class="shrink-0 border-t border-line p-2.5 flex items-center"
         :class="collapsed ? 'flex-col gap-2' : 'justify-between'"
       >
-        <div class="flex items-center gap-1" :class="{ 'flex-col': collapsed }">
+        <div class="flex items-center gap-0.5" :class="{ 'flex-col': collapsed }">
           <ClientOnly>
             <UButton
               :icon="isDark ? 'i-tabler-sun' : 'i-tabler-moon'"
               color="neutral"
               variant="ghost"
-              class="rounded-full"
-              :ui="{ base: 'rounded-full' }"
+              class="rounded"
               :aria-label="isDark ? 'Ativar tema claro' : 'Ativar tema escuro'"
               @click="toggleColorMode"
             />
@@ -76,8 +85,7 @@
                 icon="i-tabler-moon"
                 color="neutral"
                 variant="ghost"
-                class="rounded-full"
-                :ui="{ base: 'rounded-full' }"
+                class="rounded"
                 disabled
               />
             </template>
@@ -86,22 +94,38 @@
             icon="i-tabler-bell"
             color="neutral"
             variant="ghost"
-            class="rounded-full"
-            :ui="{ base: 'rounded-full' }"
+            class="rounded"
           />
         </div>
 
-        <figure class="w-8 h-8 shrink-0 rounded-full bg-slate-300 dark:bg-slate-600"></figure>
+        <div class="flex items-center gap-1.5" :class="{ 'flex-col': collapsed }">
+          <div
+            v-if="organizationInitials"
+            class="w-7 h-7 shrink-0 rounded bg-green-500/10 border border-green-500/30 text-green-700 dark:text-green-400 text-[11px] font-bold flex items-center justify-center"
+            :title="organizationName"
+          >
+            {{ organizationInitials }}
+          </div>
+          <UButton
+            icon="i-tabler-logout"
+            color="neutral"
+            variant="ghost"
+            class="rounded"
+            aria-label="Encerrar sessão"
+            title="Encerrar sessão"
+            @click="handleLogout"
+          />
+        </div>
       </div>
     </div>
 
     <button
       type="button"
-      class="absolute -right-3 top-7 w-6 h-6 rounded-full bg-surface border border-line shadow-md flex items-center justify-center text-ink-muted hover:text-ink transition-colors"
+      class="absolute -right-2.5 top-6 w-5 h-5 rounded bg-surface border border-line shadow-sm flex items-center justify-center text-ink-muted hover:text-ink transition-colors"
       :aria-label="collapsed ? 'Expandir menu' : 'Retrair menu'"
       @click="collapsed = !collapsed"
     >
-      <Icon :name="collapsed ? 'tabler:chevron-right' : 'tabler:chevron-left'" size="0.9rem" />
+      <Icon :name="collapsed ? 'tabler:chevron-right' : 'tabler:chevron-left'" size="0.8rem" />
     </button>
   </aside>
 </template>
@@ -115,18 +139,31 @@ const toggleColorMode = () => {
   colorMode.preference = isDark.value ? "light" : "dark";
 };
 
+const { name: organizationName, initials: organizationInitials, fetchOrganizationName } =
+  useOrganizationName();
+
+const { logout } = useAuth();
+const handleLogout = async () => {
+  logout();
+  await navigateTo("/auth/login");
+};
+
 const links = [
   { name: "Home", path: "/internal", icon: "tabler:layout-dashboard" },
   { name: "Métricas", path: "/internal/metrics", icon: "tabler:chart-bar" },
   { name: "Clientes", path: "/internal/clients", icon: "tabler:users" },
+  { name: "Auditoria", path: "/internal/audit", icon: "tabler:history" },
   {
     name: "Organização",
     path: "/internal/organization",
     icon: "tabler:building-skyscraper",
   },
+  { name: "Colaboradores", path: "/internal/collaborators", icon: "tabler:users-group" },
 ];
 
 onMounted(() => {
+  fetchOrganizationName();
+
   try {
     const stored = localStorage.getItem("ez-parking-sidebar-collapsed");
     if (stored !== null) collapsed.value = stored === "true";
@@ -149,10 +186,10 @@ watch(collapsed, (value) => {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 0.7rem;
-  padding: 0.6rem 0.75rem;
-  border-radius: 0.75rem;
-  font-size: 0.875rem;
+  gap: 0.65rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   color: var(--color-ink-muted);
   text-decoration: none;
@@ -168,7 +205,7 @@ watch(collapsed, (value) => {
 
 .side-link.router-link-exact-active,
 .side-link.router-link-exact-active:hover {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(20, 184, 166, 0.12));
+  background: var(--color-brand-soft);
   color: var(--color-ink);
   font-weight: 600;
 }
@@ -176,12 +213,12 @@ watch(collapsed, (value) => {
 .side-link.router-link-exact-active::after {
   content: "";
   position: absolute;
-  right: 0.4rem;
+  right: 0.35rem;
   top: 50%;
   transform: translateY(-50%);
-  width: 3px;
+  width: 2px;
   height: 55%;
-  border-radius: 999px;
-  background: linear-gradient(rgb(139, 92, 246), rgb(20, 184, 166));
+  border-radius: 1px;
+  background: var(--color-brand);
 }
 </style>
