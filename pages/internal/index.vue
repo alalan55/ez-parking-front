@@ -208,7 +208,7 @@
 
               <template #tariff-cell="{ row }">
                 <span v-if="row.original.activeVacancyLog?.entryTime" class="font-mono text-ink">
-                  {{ formattedRevenueValue(liveTariff(row.original.activeVacancyLog.entryTime)) }}
+                  {{ formattedRevenueValue(liveTariff(row.original.activeVacancyLog.entryTime, row.original.vehicle?.type)) }}
                 </span>
                 <span v-else class="text-ink-faint">—</span>
               </template>
@@ -358,10 +358,9 @@
 <script setup>
 import { useDebounceFn } from "@vueuse/core";
 
-const HOURLY_RATE = 7;
-
 const http = useApi();
 const organizationId = useCurrentOrganizationId();
+const tariffRates = ref({});
 
 const loading = ref(false);
 const infoDialog = ref(false);
@@ -447,7 +446,8 @@ const formatDwell = (entryTime) => {
   return `${String(hours).padStart(2, "0")}h${String(mins).padStart(2, "0")}m`;
 };
 
-const liveTariff = (entryTime) => (dwellMinutes(entryTime) / 60) * HOURLY_RATE;
+const liveTariff = (entryTime, vehicleType) =>
+  (dwellMinutes(entryTime) / 60) * (tariffRates.value[vehicleType] ?? 0);
 
 const debouncedSearch = useDebounceFn(() => {
   getVacanciesLogs();
@@ -481,6 +481,15 @@ const getVacanciesLogs = async (silent = false) => {
 const getTodayStats = async () => {
   const { data, error } = await http.get(`/metric/average-daily-stay/${organizationId.value}`);
   if (!error.value) todayStats.value = data.value.content;
+};
+
+const getTariffRates = async () => {
+  const { data, error } = await http.get(`/tariff/${organizationId.value}`);
+  if (error.value) return;
+
+  tariffRates.value = Object.fromEntries(
+    data.value.content.map((rate) => [rate.vehicleType, rate.hourlyRate])
+  );
 };
 
 const openCheckin = (vacancyId = null) => {
@@ -527,6 +536,7 @@ onUnmounted(() => {
 
 getVacanciesLogs();
 getTodayStats();
+getTariffRates();
 </script>
 
 <style scoped lang="postcss"></style>

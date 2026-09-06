@@ -122,16 +122,32 @@ hairline borders, and monospace for data, not another gradient-and-shadow pass.
   section. The one remaining gap there is individual-record routes with no org in the
   URL at all (collaborator/client/vehicle by bare id), not something this repo can fix.
 
+## Tariffs (real, added 2026-09-06)
+
+Real, persisted hourly rate per vehicle type, replacing a hardcoded `HOURLY_RATE = 7`
+constant that used to live independently in both `index.vue` and `metrics.vue` (and,
+worse, charged every vehicle type the same). Configured from a "Tarifação" section on
+`organization.vue` (`GET`/`PUT /tariff`, role-gated to Admin/Super admin on the write).
+`index.vue`'s live per-vaga ticking tariff and `metrics.vue`'s per-log tariff column and
+`SharedTrendBadge`-driven revenue KPI all fetch `GET /tariff/:organizationId` once (a
+plain `tariffRates` ref keyed by vehicle type, not a shared composable — only two call
+sites) and look up `tariffRates.value[vehicleType] ?? 0`. A vehicle type with no
+configured rate shows `R$ 0,00`, never a fabricated fallback price — same "no fake data"
+rule as everywhere else. Backend-side revenue math (period-summary, revenue-trend,
+average-daily-stay) also switched to these real rates — see
+`ez-parking-back/CLAUDE.md`'s inventory for the pre-existing date-comparison bug found
+and fixed along the way.
+
 ## Pages built so far (redesigned to the current system)
 
 Every real page now matches: `pages/internal/index.vue` (Vagas), `metrics.vue`,
 `clients.vue`, `audit.vue`, `collaborators.vue`, `organization.vue` (redesigned
 2026-09-06 — same flat-card/mono-label shape as the rest, real "última atualização"
 timestamp from the org's own `updatedAt` instead of the fabricated "por Carlos M."
-attribution the Stitch mock had), and `auth/login.vue` / `auth/register.vue` ("Criar
-organização" — single flow; the old "join an existing organization by ID" self-service
-path was removed since collaborators aren't meant to self-register into an org, per the
-backend's business rule).
+attribution the Stitch mock had; also where the new "Tarifação" section lives), and
+`auth/login.vue` / `auth/register.vue` ("Criar organização" — single flow; the old "join
+an existing organization by ID" self-service path was removed since collaborators aren't
+meant to self-register into an org, per the backend's business rule).
 
 ## Conventions
 

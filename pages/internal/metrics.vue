@@ -282,13 +282,12 @@
 </template>
 
 <script setup>
-const HOURLY_RATE = 7;
-
 const http = useApi();
 const toast = useToast();
 const colorMode = useColorMode();
 const organizationId = useCurrentOrganizationId();
 
+const tariffRates = ref({});
 const logs = ref([]);
 const loading = ref(false);
 const search = ref("");
@@ -367,10 +366,11 @@ const formattedRevenue = (value) =>
 
 const logTariff = (log) => {
   if (!log.entryTime) return 0;
+  const rate = tariffRates.value[log.vehicle?.type] ?? 0;
   const entry = new Date(log.entryTime);
   const end = log.exitTime ? new Date(log.exitTime) : now.value;
   const minutes = Math.max(0, (end - entry) / 1000 / 60);
-  return (minutes / 60) * HOURLY_RATE;
+  return (minutes / 60) * rate;
 };
 
 const isDark = computed(() => colorMode.value === "dark");
@@ -629,6 +629,15 @@ const getDailyAverageStay = async () => {
   dailyStay.value = data.value.content;
 };
 
+const getTariffRates = async () => {
+  const { data, error } = await http.get(`/tariff/${organizationId.value}`);
+  if (error.value) return;
+
+  tariffRates.value = Object.fromEntries(
+    data.value.content.map((rate) => [rate.vehicleType, rate.hourlyRate])
+  );
+};
+
 const getLogsFromOrganization = async () => {
   loading.value = true;
 
@@ -703,6 +712,7 @@ onUnmounted(() => {
   clearInterval(tickInterval);
 });
 
+getTariffRates();
 getLogsFromOrganization();
 refreshPeriodData();
 </script>
